@@ -27,7 +27,11 @@ export const uploadRoutes = new Elysia({ prefix: '/uploads' })
     async ({ currentUser, body }: any) => {
       if (!currentUser) throw new AppError(401, 'UNAUTHORIZED', 'Authentication required');
 
-      const { filename, mimeType, size, folderId, checksum, idempotencyKey } = body;
+      const { filename, mimeType, size, checksum, idempotencyKey } = body;
+      let folderId = body.folderId;
+      if (!folderId || folderId === 'null' || folderId === 'undefined' || folderId === '') {
+        folderId = null;
+      }
 
       // Check max file size
       if (size > APP_CONSTANTS.MAX_UPLOAD_SIZE_BYTES) {
@@ -305,7 +309,10 @@ export const uploadRoutes = new Elysia({ prefix: '/uploads' })
       if (!currentUser) throw new AppError(401, 'UNAUTHORIZED', 'Authentication required');
 
       const file = body.file as File;
-      const folderId = body.folderId || null;
+      let folderId = body.folderId;
+      if (!folderId || folderId === 'null' || folderId === 'undefined' || folderId === '') {
+        folderId = null;
+      }
 
       if (!file) throw new AppError(400, 'FILE_REQUIRED', 'No file was provided in the upload request');
 

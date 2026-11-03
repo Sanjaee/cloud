@@ -26,10 +26,12 @@
     CheckSquare,
     Layers,
     X,
+    Plus,
   } from 'lucide-svelte';
   import { onMount, onDestroy } from 'svelte';
   import type { FileItem, FolderItem, BreadcrumbItem } from '$lib/api/types';
 
+  let innerFolderFileInput: HTMLInputElement;
   let currentFolderId = $state<string | null>(null);
   let folders = $state<FolderItem[]>([]);
   let files = $state<FileItem[]>([]);
@@ -125,6 +127,19 @@
 
   async function loadData(folderId: string | null = null) {
     currentFolderId = folderId;
+    selectionStore.getState().setActiveFolderId(folderId);
+
+    // Sync query parameter ?folder=... into URL without full page reload
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      if (folderId) {
+        url.searchParams.set('folder', folderId);
+      } else {
+        url.searchParams.delete('folder');
+      }
+      window.history.replaceState({}, '', url.toString());
+    }
+
     isLoading = true;
     try {
       const folderParam = folderId ? `?parentId=${folderId}` : '';
@@ -210,13 +225,17 @@
   }
 
   onMount(() => {
-    loadData();
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialFolder = urlParams.get('folder');
+    loadData(initialFolder || null);
+
     window.addEventListener('click', onGlobalClick);
     window.addEventListener('folder-created', () => loadData(currentFolderId));
     window.addEventListener('file-uploaded', () => loadData(currentFolderId));
   });
 
   onDestroy(() => {
+    selectionStore.getState().setActiveFolderId(null);
     if (typeof window !== 'undefined') {
       window.removeEventListener('click', onGlobalClick);
       window.removeEventListener('folder-created', () => loadData(currentFolderId));
@@ -244,21 +263,49 @@
   ondrop={handleDrop}
   class="relative min-h-full flex flex-col {isDragOver ? 'ring-4 ring-blue-500/40 rounded-3xl bg-blue-50/20' : ''}"
 >
-  <!-- Breadcrumbs Bar -->
-  <div class="flex items-center gap-2 mb-6 text-sm">
-    {#each breadcrumbs as bc, i}
+  <!-- Hidden File Input for Folder View Uploads -->
+  <input
+    bind:this={innerFolderFileInput}
+    type="file"
+    multiple
+    class="hidden"
+    onchange={(e) => {
+      const input = e.target as HTMLInputElement;
+      if (input.files && input.files.length > 0) {
+        uploadStore.getState().addFiles(input.files, currentFolderId);
+        input.value = '';
+      }
+    }}
+  />
+
+  <!-- Breadcrumbs & Quick Action Bar -->
+  <div class="flex items-center justify-between mb-6 text-sm">
+    <div class="flex items-center gap-2">
+      {#each breadcrumbs as bc, i}
+        <button
+          onclick={() => loadData(bc.id)}
+          class="flex items-center gap-1.5 font-medium hover:text-blue-600 transition cursor-pointer {i === breadcrumbs.length - 1
+            ? 'font-bold text-slate-900 dark:text-white'
+            : 'text-slate-500 dark:text-slate-400'}"
+        >
+          <span>{bc.name}</span>
+        </button>
+        {#if i < breadcrumbs.length - 1}
+          <ChevronRight class="w-4 h-4 text-slate-400" />
+        {/if}
+      {/each}
+    </div>
+
+    {#if currentFolderId}
       <button
-        onclick={() => loadData(bc.id)}
-        class="flex items-center gap-1.5 font-medium hover:text-blue-600 transition cursor-pointer {i === breadcrumbs.length - 1
-          ? 'font-bold text-slate-900 dark:text-white'
-          : 'text-slate-500 dark:text-slate-400'}"
+        type="button"
+        onclick={() => innerFolderFileInput.click()}
+        class="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition cursor-pointer active:scale-95"
       >
-        <span>{bc.name}</span>
+        <Plus class="w-4 h-4" />
+        <span>Upload to Folder</span>
       </button>
-      {#if i < breadcrumbs.length - 1}
-        <ChevronRight class="w-4 h-4 text-slate-400" />
-      {/if}
-    {/each}
+    {/if}
   </div>
 
   {#if isLoading}
@@ -315,12 +362,22 @@
       </div>
 
       {#if files.length === 0 && folders.length === 0}
-        <div class="text-center py-20 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl p-8">
-          <UploadCloud class="w-12 h-12 text-slate-400 mx-auto mb-3" />
-          <h4 class="font-bold text-slate-800 dark:text-slate-200 text-sm">Drop files here to upload</h4>
+        <div class="text-center py-20 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl p-8 flex flex-col items-center justify-center">
+          <UploadCloud class="w-12 h-12 text-blue-500 mx-auto mb-3" />
+          <h4 class="font-bold text-slate-800 dark:text-slate-200 text-sm">
+            {currentFolderId ? 'Folder ini masih kosong' : 'Drop files here to upload'}
+          </h4>
           <p class="text-xs text-slate-500 mt-1 mb-4">
-            Upload directly to Cloudflare R2 object storage with fast presigned transfers.
+            {currentFolderId ? 'Tarik file ke sini atau klik tombol di bawah untuk upload langsung ke dalam folder ini' : 'Upload directly to Cloudflare R2 object storage with fast presigned transfers.'}
           </p>
+          <button
+            type="button"
+            onclick={() => innerFolderFileInput.click()}
+            class="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-500/25 transition cursor-pointer active:scale-95"
+          >
+            <Plus class="w-4 h-4" />
+            <span>Upload ke folder ini</span>
+          </button>
         </div>
       {:else if viewMode === 'grid'}
         <!-- Grid View -->

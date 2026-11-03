@@ -63,6 +63,10 @@ export const uploadStore = createStore<UploadStoreState>((set, get) => ({
   toggleMinimized: () => set((state) => ({ isMinimized: !state.isMinimized })),
 
   addFiles: (fileList, targetFolderId = null) => {
+    const cleanFolderId =
+      targetFolderId && targetFolderId !== 'null' && targetFolderId !== 'undefined'
+        ? targetFolderId
+        : null;
     const newItems: UploadItem[] = Array.from(fileList).map((file) => ({
       id: crypto.randomUUID(),
       file,
@@ -71,7 +75,7 @@ export const uploadStore = createStore<UploadStoreState>((set, get) => ({
       size: file.size,
       originalSize: file.size,
       mimeType: file.type || 'application/octet-stream',
-      folderId: targetFolderId,
+      folderId: cleanFolderId,
       status: 'queued',
       progress: 0,
       bytesUploaded: 0,

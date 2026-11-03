@@ -13,6 +13,7 @@ interface SelectionStoreState {
   previewFile: FileItem | null;
   sharingResource: { type: 'file' | 'folder'; item: FileItem | FolderItem } | null;
   batchSharingResources: BatchResourceItem[] | null;
+  activeFolderId: string | null;
 
   setViewMode: (mode: 'grid' | 'table') => void;
   toggleFileSelection: (id: string, multi?: boolean) => void;
@@ -22,6 +23,7 @@ interface SelectionStoreState {
   setPreviewFile: (file: FileItem | null) => void;
   setSharingResource: (res: { type: 'file' | 'folder'; item: FileItem | FolderItem } | null) => void;
   setBatchSharingResources: (items: BatchResourceItem[] | null) => void;
+  setActiveFolderId: (folderId: string | null) => void;
 }
 
 export const selectionStore = createStore<SelectionStoreState>((set) => ({
@@ -31,6 +33,7 @@ export const selectionStore = createStore<SelectionStoreState>((set) => ({
   previewFile: null,
   sharingResource: null,
   batchSharingResources: null,
+  activeFolderId: null,
 
   setViewMode: (mode) => set({ viewMode: mode }),
 
@@ -63,5 +66,7 @@ export const selectionStore = createStore<SelectionStoreState>((set) => ({
   setSharingResource: (res) => set({ sharingResource: res }),
 
   setBatchSharingResources: (items) => set({ batchSharingResources: items }),
+
+  setActiveFolderId: (folderId) => set({ activeFolderId: folderId }),
 }));
 

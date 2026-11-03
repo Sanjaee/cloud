@@ -8,12 +8,18 @@
   import FilePreviewModal from '$lib/components/file-preview/FilePreviewModal.svelte';
   import ShareDialog from '$lib/components/sharing/ShareDialog.svelte';
   import NewFolderDialog from '$lib/components/dialogs/NewFolderDialog.svelte';
+  import { selectionStore } from '$lib/stores/selection.store';
   import type { QuotaInfo } from '$lib/api/types';
 
   let { children } = $props();
   let isLoading = $state(true);
   let isNewFolderOpen = $state(false);
   let quota = $state<QuotaInfo | null>(null);
+  let activeFolderId = $state<string | null>(null);
+
+  selectionStore.subscribe((s) => {
+    activeFolderId = s.activeFolderId;
+  });
 
   async function loadQuota() {
     try {
@@ -79,6 +85,7 @@
     <ShareDialog />
     <NewFolderDialog
       isOpen={isNewFolderOpen}
+      currentFolderId={activeFolderId}
       onClose={() => (isNewFolderOpen = false)}
       onCreated={() => {
         window.dispatchEvent(new CustomEvent('folder-created'));

@@ -15,6 +15,7 @@
     Shield,
   } from 'lucide-svelte';
   import { uploadStore } from '$lib/stores/upload.store';
+  import { selectionStore } from '$lib/stores/selection.store';
 
   interface Props {
     quota?: {
@@ -32,7 +33,8 @@
   function handleFileSelect(e: Event) {
     const input = e.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      uploadStore.getState().addFiles(input.files);
+      const activeFolder = selectionStore.getState().activeFolderId;
+      uploadStore.getState().addFiles(input.files, activeFolder);
       input.value = '';
     }
   }
