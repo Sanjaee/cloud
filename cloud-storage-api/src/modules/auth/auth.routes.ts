@@ -28,12 +28,19 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       });
 
       const callbackUrl = query.redirect_uri || env.GOOGLE_CALLBACK_URL;
-      const authUrl = GoogleOAuthService.getAuthorizationUrl(callbackUrl, state);
+      const authUrl = GoogleOAuthService.getAuthorizationUrl(
+        callbackUrl,
+        state,
+        query.login_hint,
+        query.prompt
+      );
       return redirect(authUrl);
     },
     {
       query: t.Object({
         redirect_uri: t.Optional(t.String()),
+        login_hint: t.Optional(t.String()),
+        prompt: t.Optional(t.String()),
       }),
       detail: { tags: ['Google OAuth'], summary: 'Redirect to Google OAuth 2.0 authorization page' },
     }
@@ -55,7 +62,12 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       });
 
       const callbackUrl = query.redirect_uri || env.GOOGLE_CALLBACK_URL;
-      const authUrl = GoogleOAuthService.getAuthorizationUrl(callbackUrl, state);
+      const authUrl = GoogleOAuthService.getAuthorizationUrl(
+        callbackUrl,
+        state,
+        query.login_hint,
+        query.prompt
+      );
 
       return {
         success: true,
@@ -68,6 +80,8 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     {
       query: t.Object({
         redirect_uri: t.Optional(t.String()),
+        login_hint: t.Optional(t.String()),
+        prompt: t.Optional(t.String()),
       }),
       detail: { tags: ['Google OAuth'], summary: 'Get Google OAuth 2.0 authorization URL' },
     }
@@ -76,7 +90,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   // 0c. Google OAuth 2.0 Callback
   .get(
     '/google/callback',
-    async ({ query, cookie, redirect, request }) => {
+    async ({ query, cookie, redirect, request, jwt }: any) => {
       // Resolve absolute frontend URL for OAuth redirection
       const validOrigins = (env.WEB_ORIGIN || '')
         .split(',')
@@ -111,6 +125,25 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
         const googleUser = await GoogleOAuthService.fetchGoogleUserInfo(tokens.accessToken);
         const user = await GoogleOAuthService.findOrCreateGoogleUser(googleUser);
 
+        // Check if user has Two-Factor Authentication (2FA) enabled
+        const mfa = await db.query.mfaCredentials.findFirst({
+          where: and(eq(mfaCredentials.userId, user.id), eq(mfaCredentials.isEnabled, true)),
+        });
+
+        if (mfa) {
+          // 2FA is required! Generate a secure short-lived (5 min) pending token
+          const mfaPendingToken = await jwt.sign({
+            sub: user.id,
+            email: user.email,
+            purpose: 'mfa_google_verify',
+            exp: Math.floor(Date.now() / 1000) + 300,
+          });
+
+          return redirect(
+            `${frontendUrl}/login?mfa_required=true&mfa_token=${encodeURIComponent(mfaPendingToken)}&email=${encodeURIComponent(user.email)}`
+          );
+        }
+
         const { ticket } = await GoogleOAuthService.createSessionAndTicket(user.id, request, cookie);
 
         // Redirect to dashboard with ticket for automatic session handover
@@ -131,7 +164,77 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     }
   )
 
-  // 0d. Exchange Ticket for Session Cookie (SPA & Cross-Domain Handover)
+  // 0d. Complete Google Sign-In with 2FA (TOTP or Backup Code)
+  .post(
+    '/google/mfa-verify',
+    async ({ body, cookie, request, jwt }: any) => {
+      const { mfaToken, code } = body;
+      const payload = (await jwt.verify(mfaToken)) as { sub?: string; purpose?: string } | false;
+
+      if (!payload || !payload.sub || payload.purpose !== 'mfa_google_verify') {
+        throw new AppError(401, 'INVALID_TOKEN', 'Sesi verifikasi 2FA telah kedaluwarsa. Silakan login kembali.');
+      }
+
+      const userId = payload.sub;
+      const mfa = await db.query.mfaCredentials.findFirst({
+        where: and(eq(mfaCredentials.userId, userId), eq(mfaCredentials.isEnabled, true)),
+      });
+
+      if (!mfa || !mfa.isEnabled) {
+        throw new AppError(400, 'MFA_NOT_ENABLED', '2FA tidak aktif pada akun ini');
+      }
+
+      const cleanCode = String(code).replace(/[\s-]+/g, '').trim();
+
+      // 1. Try TOTP check (with window [2, 2])
+      authenticator.options = { window: [2, 2] };
+      let isValid = authenticator.check(cleanCode, mfa.secret.replace(/\s+/g, ''));
+
+      // 2. If not valid TOTP, check if it matches any active backup recovery code
+      if (!isValid && mfa.backupCodesHash && mfa.backupCodesHash.length > 0) {
+        const hashedCode = await hashToken(cleanCode.toUpperCase());
+        const backupIdx = (mfa.backupCodesHash as string[]).indexOf(hashedCode);
+        if (backupIdx !== -1) {
+          isValid = true;
+          // Burn the single-use backup recovery code
+          const updatedCodes = [...(mfa.backupCodesHash as string[])];
+          updatedCodes.splice(backupIdx, 1);
+          await db
+            .update(mfaCredentials)
+            .set({ backupCodesHash: updatedCodes, updatedAt: new Date() })
+            .where(eq(mfaCredentials.id, mfa.id));
+        }
+      }
+
+      if (!isValid) {
+        throw new AppError(
+          400,
+          'INVALID_CODE',
+          'Kode 2FA atau Kode Cadangan (Backup Code) salah atau sudah kedaluwarsa.'
+        );
+      }
+
+      // 2FA Verified! Establish session and exchange ticket
+      const { ticket } = await GoogleOAuthService.createSessionAndTicket(userId, request, cookie);
+
+      return {
+        success: true,
+        message: 'Verifikasi 2FA berhasil',
+        data: {
+          ticket,
+        },
+      };
+    },
+    {
+      body: t.Object({
+        mfaToken: t.String(),
+        code: t.String(),
+      }),
+      detail: { tags: ['Google OAuth'], summary: 'Verify 2FA TOTP or Backup Code after Google Sign-In' },
+    }
+  )
+
+  // 0e. Exchange Ticket for Session Cookie (SPA & Cross-Domain Handover)
   .post(
     '/google/exchange-ticket',
     async ({ body, cookie }) => {

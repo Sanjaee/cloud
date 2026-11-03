@@ -23,6 +23,16 @@ export const authStore = createStore<AuthStoreState>((set) => ({
     try {
       const data = await apiRequest('/users/me');
       set({ user: data.user, isAuthenticated: true, isLoading: false });
+      if (data?.user?.email && typeof window !== 'undefined') {
+        localStorage.setItem(
+          'rea_last_google_user',
+          JSON.stringify({
+            email: data.user.email,
+            name: data.user.profile?.displayName || data.user.username,
+            avatarUrl: data.user.profile?.avatarUrl,
+          })
+        );
+      }
     } catch {
       set({ user: null, isAuthenticated: false, isLoading: false });
     }

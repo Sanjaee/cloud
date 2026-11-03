@@ -20,7 +20,12 @@ export class GoogleOAuthService {
   /**
    * Builds the official Google OAuth 2.0 Authorization URL
    */
-  static getAuthorizationUrl(redirectUri?: string, state?: string): string {
+  static getAuthorizationUrl(
+    redirectUri?: string,
+    state?: string,
+    loginHint?: string,
+    prompt?: string
+  ): string {
     const callback = redirectUri || env.GOOGLE_CALLBACK_URL;
     const params = new URLSearchParams({
       client_id: env.GOOGLE_CLIENT_ID,
@@ -28,9 +33,20 @@ export class GoogleOAuthService {
       response_type: 'code',
       scope: 'openid email profile',
       access_type: 'offline',
-      prompt: 'select_account',
       state: state || crypto.randomUUID(),
     });
+
+    if (loginHint) {
+      params.set('login_hint', loginHint);
+    }
+
+    // If explicit prompt is provided, use it (e.g. 'select_account' when switching account)
+    // If loginHint is provided and no explicit prompt, omit prompt so Google auto-signs-in without showing account chooser
+    if (prompt) {
+      params.set('prompt', prompt);
+    } else if (!loginHint) {
+      params.set('prompt', 'select_account');
+    }
 
     return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
   }
