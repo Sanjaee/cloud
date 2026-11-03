@@ -23,3 +23,4 @@ export async function configureR2Cors() {
   const res = await r2Client.send(getCmd);
   return res.CORSRules;
 }
+

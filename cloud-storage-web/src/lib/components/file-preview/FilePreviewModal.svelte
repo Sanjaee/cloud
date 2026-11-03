@@ -2,8 +2,8 @@
   import { selectionStore } from '$lib/stores/selection.store';
   import { apiRequest } from '$lib/api/client';
   import { formatBytes } from '$lib/utils/file-size';
-  import { getFileCategory } from '$lib/utils/file-type';
-  import { X, Download, FileText, Share2, Info, AlertCircle } from 'lucide-svelte';
+  import { getFileCategory, isTextPreviewable } from '$lib/utils/file-type';
+  import { X, Download, FileText, Share2, Info, AlertCircle, FileSpreadsheet, Printer, ExternalLink } from 'lucide-svelte';
   import type { FileItem } from '$lib/api/types';
 
   let file = $state<FileItem | null>(null);
@@ -23,9 +23,8 @@
         const res = await apiRequest(`/downloads/${file.id}/preview`);
         previewUrl = res.previewUrl;
 
-        // If code or text, fetch text
-        const cat = getFileCategory(file.mimeType, file.name);
-        if (cat === 'code' || cat === 'document') {
+        // ONLY fetch text if the file is an actual text/code file (NEVER for binary/xlsx/pdf)
+        if (isTextPreviewable(file.mimeType, file.name)) {
           try {
             const raw = await fetch(res.previewUrl);
             textContent = await raw.text();
@@ -104,11 +103,76 @@
             class="max-h-[80vh] max-w-[90vw] object-contain rounded-lg shadow-2xl"
           />
         {:else if category === 'pdf'}
-          <iframe
-            src={previewUrl}
-            title={file.name}
-            class="w-full max-w-4xl h-[80vh] rounded-xl shadow-2xl bg-white"
-          ></iframe>
+          <div class="w-full max-w-5xl h-[85vh] flex flex-col bg-slate-900 rounded-2xl shadow-2xl overflow-hidden border border-slate-800">
+            <!-- PDF control bar with Print shortcut hint -->
+            <div class="h-10 px-4 bg-slate-800/90 border-b border-slate-700/60 flex items-center justify-between text-xs text-slate-300">
+              <span class="font-medium text-slate-300 flex items-center gap-2">
+                <FileText class="w-4 h-4 text-rose-400" />
+                PDF Document Viewer
+              </span>
+              <button
+                onclick={() => window.open(previewUrl, '_blank')}
+                class="flex items-center gap-1.5 px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded-lg text-white text-[11px] font-medium transition cursor-pointer"
+                title="Open in Full Window"
+              >
+                <Printer class="w-3.5 h-3.5" />
+                Print / Full View (Ctrl+P)
+              </button>
+            </div>
+            <iframe
+              src={previewUrl}
+              title={file.name}
+              class="w-full flex-1 bg-white"
+            ></iframe>
+          </div>
+        {:else if category === 'spreadsheet'}
+          <div class="text-center p-8 bg-slate-900 border border-slate-800 rounded-2xl max-w-md shadow-2xl">
+            <div class="w-16 h-16 bg-emerald-950/60 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-emerald-800/40">
+              <FileSpreadsheet class="w-8 h-8" />
+            </div>
+            <h4 class="font-bold text-white text-base mb-1">{file.name}</h4>
+            <p class="text-xs text-slate-400 mb-6">Microsoft Excel Spreadsheet ({formatBytes(file.size)})</p>
+            <div class="flex flex-col gap-2.5">
+              <button
+                onclick={handleDownload}
+                class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-md transition cursor-pointer"
+              >
+                <Download class="w-4 h-4" />
+                Download Spreadsheet
+              </button>
+              <button
+                onclick={() => window.open(`https://docs.google.com/viewer?url=${encodeURIComponent(previewUrl || '')}`, '_blank')}
+                class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold transition cursor-pointer"
+              >
+                <ExternalLink class="w-4 h-4" />
+                Open with Google Docs Viewer
+              </button>
+            </div>
+          </div>
+        {:else if category === 'document'}
+          <div class="text-center p-8 bg-slate-900 border border-slate-800 rounded-2xl max-w-md shadow-2xl">
+            <div class="w-16 h-16 bg-blue-950/60 text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-blue-800/40">
+              <FileText class="w-8 h-8" />
+            </div>
+            <h4 class="font-bold text-white text-base mb-1">{file.name}</h4>
+            <p class="text-xs text-slate-400 mb-6">Word Document ({formatBytes(file.size)})</p>
+            <div class="flex flex-col gap-2.5">
+              <button
+                onclick={handleDownload}
+                class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-md transition cursor-pointer"
+              >
+                <Download class="w-4 h-4" />
+                Download Document
+              </button>
+              <button
+                onclick={() => window.open(`https://docs.google.com/viewer?url=${encodeURIComponent(previewUrl || '')}`, '_blank')}
+                class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold transition cursor-pointer"
+              >
+                <ExternalLink class="w-4 h-4" />
+                Open with Google Docs Viewer
+              </button>
+            </div>
+          </div>
         {:else if category === 'video'}
           <video controls src={previewUrl} class="max-h-[80vh] max-w-[90vw] rounded-xl shadow-2xl">
             <track kind="captions" />

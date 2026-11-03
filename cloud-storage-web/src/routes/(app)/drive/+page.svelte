@@ -259,8 +259,31 @@
               class="group relative flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-600 rounded-2xl shadow-xs hover:shadow-md transition overflow-hidden cursor-pointer select-none"
             >
               <!-- Thumbnail / Icon Area -->
-              <div class="h-32 bg-slate-50 dark:bg-slate-800/40 flex items-center justify-center">
-                <IconComponent class="w-12 h-12 text-blue-500/80 stroke-1 group-hover:scale-105 transition" />
+              <div class="h-32 bg-slate-50 dark:bg-slate-800/40 flex items-center justify-center overflow-hidden relative">
+                {#if getFileCategory(f.mimeType, f.name) === 'image'}
+                  <img
+                    src="/api/v1/downloads/{f.id}/view"
+                    alt={f.name}
+                    loading="lazy"
+                    class="w-full h-full object-cover group-hover:scale-105 transition duration-200"
+                  />
+                {:else if getFileCategory(f.mimeType, f.name) === 'pdf'}
+                  <div class="flex flex-col items-center justify-center gap-1.5 text-rose-500">
+                    <div class="p-3 bg-rose-50 dark:bg-rose-950/40 rounded-xl group-hover:scale-110 transition">
+                      <FileText class="w-8 h-8 text-rose-500" />
+                    </div>
+                    <span class="text-[10px] font-bold tracking-wider uppercase text-rose-500/90">PDF</span>
+                  </div>
+                {:else if getFileCategory(f.mimeType, f.name) === 'spreadsheet'}
+                  <div class="flex flex-col items-center justify-center gap-1.5 text-emerald-500">
+                    <div class="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl group-hover:scale-110 transition">
+                      <FileText class="w-8 h-8 text-emerald-500" />
+                    </div>
+                    <span class="text-[10px] font-bold tracking-wider uppercase text-emerald-500/90">Spreadsheet</span>
+                  </div>
+                {:else}
+                  <IconComponent class="w-12 h-12 text-blue-500/80 stroke-1 group-hover:scale-105 transition" />
+                {/if}
               </div>
 
               <!-- File Info -->
@@ -303,7 +326,16 @@
                   class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition cursor-pointer"
                 >
                   <td class="py-3 px-4 flex items-center gap-3">
-                    <IconComponent class="w-4 h-4 text-blue-500 shrink-0" />
+                    {#if getFileCategory(f.mimeType, f.name) === 'image'}
+                      <img
+                        src="/api/v1/downloads/{f.id}/view"
+                        alt={f.name}
+                        loading="lazy"
+                        class="w-6 h-6 rounded object-cover shrink-0 border border-slate-700/50"
+                      />
+                    {:else}
+                      <IconComponent class="w-4 h-4 text-blue-500 shrink-0" />
+                    {/if}
                     <span class="font-semibold text-slate-900 dark:text-slate-100 truncate max-w-xs">{f.name}</span>
                     {#if f.isStarred}
                       <Star class="w-3 h-3 text-amber-500 fill-amber-500" />

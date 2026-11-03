@@ -82,17 +82,23 @@ export const downloadRoutes = new Elysia({ prefix: '/downloads' })
         throw new AppError(404, 'NOT_FOUND', 'File data is not ready or upload was not completed');
       }
 
+      let previewMime = file.mimeType;
+      if (file.name.toLowerCase().endsWith('.pdf')) {
+        previewMime = 'application/pdf';
+      }
+
       const { downloadUrl, expiresIn } = await createPresignedDownloadUrl(
         storageObj.storageKey,
         file.name,
-        'inline'
+        'inline',
+        previewMime
       );
 
       return {
         success: true,
         data: {
           previewUrl: downloadUrl,
-          mimeType: file.mimeType,
+          mimeType: previewMime,
           name: file.name,
           expiresIn,
         },
@@ -101,6 +107,50 @@ export const downloadRoutes = new Elysia({ prefix: '/downloads' })
     {
       params: t.Object({ fileId: t.String({ format: 'uuid' }) }),
       detail: { tags: ['Downloads'], summary: 'Get authorized presigned preview URL for file' },
+    }
+  )
+
+  // 3. Direct Streaming/View redirect for thumbnail <img> and inline previews
+  .get(
+    '/:fileId/view',
+    async ({ currentUser, params, redirect, set }: any) => {
+      if (!currentUser) throw new AppError(401, 'UNAUTHORIZED', 'Authentication required');
+
+      const perm = await PermissionEngine.resolveFilePermission(currentUser.id, params.fileId);
+      if (!perm.hasAccess) throw new AppError(403, 'FORBIDDEN', 'Access denied to this file');
+
+      const file = await db.query.files.findFirst({
+        where: eq(files.id, params.fileId),
+      });
+
+      if (!file) throw new AppError(404, 'NOT_FOUND', 'File not found');
+
+      const storageObj = await db.query.storageObjects.findFirst({
+        where: eq(storageObjects.id, file.storageObjectId),
+      });
+
+      if (!storageObj || storageObj.status !== 'ready') {
+        throw new AppError(404, 'NOT_FOUND', 'File data is not ready');
+      }
+
+      let mimeType = file.mimeType;
+      if (file.name.toLowerCase().endsWith('.pdf')) {
+        mimeType = 'application/pdf';
+      }
+
+      const { downloadUrl } = await createPresignedDownloadUrl(
+        storageObj.storageKey,
+        file.name,
+        'inline',
+        mimeType
+      );
+
+      set.headers['Cache-Control'] = 'private, max-age=3600';
+      return redirect(downloadUrl);
+    },
+    {
+      params: t.Object({ fileId: t.String({ format: 'uuid' }) }),
+      detail: { tags: ['Downloads'], summary: 'View/stream file directly via 302 redirect' },
     }
   );
 

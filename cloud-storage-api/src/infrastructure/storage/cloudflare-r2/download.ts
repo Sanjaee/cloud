@@ -6,7 +6,8 @@ import { APP_CONSTANTS } from '../../../config/constants';
 export async function createPresignedDownloadUrl(
   storageKey: string,
   filename: string,
-  disposition: 'attachment' | 'inline' = 'attachment'
+  disposition: 'attachment' | 'inline' = 'attachment',
+  mimeType?: string
 ): Promise<{ downloadUrl: string; expiresIn: number }> {
   // RFC 5987 / 6266 encoding for safe content-disposition filenames
   const encodedFilename = encodeURIComponent(filename);
@@ -14,6 +15,7 @@ export async function createPresignedDownloadUrl(
     Bucket: BUCKET_NAME,
     Key: storageKey,
     ResponseContentDisposition: `${disposition}; filename="${filename.replace(/"/g, '')}"; filename*=UTF-8''${encodedFilename}`,
+    ...(mimeType ? { ResponseContentType: mimeType } : {}),
   });
 
   const expiresIn = APP_CONSTANTS.PRESIGNED_DOWNLOAD_EXPIRATION_SEC;
