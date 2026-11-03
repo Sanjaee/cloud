@@ -15,6 +15,19 @@ export const sessions = pgTable('sessions', {
   uniqueIndex('sessions_token_hash_idx').on(table.tokenHash),
 ]);
 
+export const oauthExchangeTickets = pgTable('oauth_exchange_tickets', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  ticketHash: text('ticket_hash').notNull().unique(),
+  sessionToken: text('session_token').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  usedAt: timestamp('used_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('oauth_tickets_user_idx').on(table.userId),
+  uniqueIndex('oauth_tickets_hash_idx').on(table.ticketHash),
+]);
+
 export const emailVerificationTokens = pgTable('email_verification_tokens', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
@@ -38,4 +51,3 @@ export const passwordResetTokens = pgTable('password_reset_tokens', {
   index('pwd_reset_user_idx').on(table.userId),
   uniqueIndex('pwd_reset_token_hash_idx').on(table.tokenHash),
 ]);
-

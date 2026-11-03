@@ -1,5 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "sveltekit"
+  "framework": "sveltekit",
+  "rewrites": [
+    {
+      "source": "/api/v1/:path*",
+      "destination": "https://cloud-storage-api-tau.vercel.app/api/v1/:path*"
+    },
+    {
+      "source": "/health/:path*",
+      "destination": "https://cloud-storage-api-tau.vercel.app/health/:path*"
+    }
+  ]
 }
-

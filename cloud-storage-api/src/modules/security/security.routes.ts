@@ -22,9 +22,11 @@ export const securityRoutes = new Elysia({ prefix: '/security' })
 
       if (!user) throw new AppError(404, 'NOT_FOUND', 'User not found');
 
-      const isMatch = await Bun.password.verify(currentPassword, user.passwordHash);
-      if (!isMatch) {
-        throw new AppError(400, 'INVALID_PASSWORD', 'Current password is incorrect');
+      if (user.passwordHash) {
+        const isMatch = await Bun.password.verify(currentPassword, user.passwordHash);
+        if (!isMatch) {
+          throw new AppError(400, 'INVALID_PASSWORD', 'Current password is incorrect');
+        }
       }
 
       const newPasswordHash = await Bun.password.hash(newPassword, {

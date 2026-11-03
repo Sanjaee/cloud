@@ -25,3 +25,4 @@ This repository contains two independent applications:
 Both applications deploy to Vercel independently:
 1. **API**: Root directory `cloud-storage-api` -> `api.example.com`
 2. **Web**: Root directory `cloud-storage-web` -> `app.example.com`
+

@@ -131,9 +131,11 @@ export const userRoutes = new Elysia({ prefix: '/users' })
 
       if (!user) throw new AppError(404, 'NOT_FOUND', 'User not found');
 
-      const isPasswordValid = await Bun.password.verify(body.password, user.passwordHash);
-      if (!isPasswordValid) {
-        throw new AppError(401, 'INVALID_PASSWORD', 'Password confirmation failed');
+      if (user.passwordHash) {
+        const isPasswordValid = await Bun.password.verify(body.password, user.passwordHash);
+        if (!isPasswordValid) {
+          throw new AppError(401, 'INVALID_PASSWORD', 'Password confirmation failed');
+        }
       }
 
       // Delete user cascades to userProfiles, sessions, shortcuts, etc.

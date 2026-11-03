@@ -57,6 +57,11 @@ export const errorHandler = new Elysia({ name: 'middleware:error-handler' })
       error: {
         code: 'INTERNAL_SERVER_ERROR',
         message: 'An unexpected internal server error occurred',
+        details: {
+          name: (error as any)?.name,
+          message: (error as any)?.message,
+          stack: (error as any)?.stack,
+        },
       },
     };
   });

@@ -23,6 +23,24 @@
   }
 
   onMount(async () => {
+    // 1. Handle OAuth ticket handover if present
+    const urlParams = new URLSearchParams(window.location.search);
+    const ticket = urlParams.get('ticket');
+    if (ticket) {
+      try {
+        await apiRequest('/auth/google/exchange-ticket', {
+          method: 'POST',
+          body: JSON.stringify({ ticket }),
+        });
+        // Clean ticket query param from browser address bar
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+      } catch (e) {
+        console.error('Failed to exchange auth ticket:', e);
+      }
+    }
+
+    // 2. Fetch authenticated user profile
     await authStore.getState().fetchUser();
     if (!authStore.getState().isAuthenticated) {
       window.location.href = '/login';

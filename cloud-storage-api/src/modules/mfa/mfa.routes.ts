@@ -154,9 +154,11 @@ export const mfaRoutes = new Elysia({ prefix: '/mfa' })
 
       if (!user) throw new AppError(404, 'NOT_FOUND', 'User not found');
 
-      const isPassValid = await Bun.password.verify(password, user.passwordHash);
-      if (!isPassValid) {
-        throw new AppError(401, 'INVALID_PASSWORD', 'Password is incorrect');
+      if (user.passwordHash) {
+        const isPassValid = await Bun.password.verify(password, user.passwordHash);
+        if (!isPassValid) {
+          throw new AppError(401, 'INVALID_PASSWORD', 'Password is incorrect');
+        }
       }
 
       const mfa = await db.query.mfaCredentials.findFirst({

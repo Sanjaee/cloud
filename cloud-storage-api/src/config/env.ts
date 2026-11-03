@@ -4,9 +4,12 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.string().default('3000'),
   DATABASE_URL: z.string().min(1),
-  WEB_ORIGIN: z.string().default('http://localhost:5173,http://localhost:3000'),
+  WEB_ORIGIN: z.string().default('https://cloud-storage-web-seven.vercel.app,http://localhost:5173,http://localhost:3000'),
   AUTH_SECRET: z.string().default('rea_auth_secret_enterprise_2026_super_secure_random_key_abc123xyz'),
   SESSION_SECRET: z.string().default('rea_session_secret_enterprise_2026_super_secure_random_key_def456uvw'),
+  GOOGLE_CLIENT_ID: z.string().default(''),
+  GOOGLE_CLIENT_SECRET: z.string().default(''),
+  GOOGLE_CALLBACK_URL: z.string().default('https://cloud-storage-api-tau.vercel.app/api/v1/auth/google/callback'),
   R2_ACCOUNT_ID: z.string().min(1),
   R2_ACCESS_KEY_ID: z.string().min(1),
   R2_SECRET_ACCESS_KEY: z.string().min(1),
@@ -25,6 +28,9 @@ export const env = envSchema.parse({
   WEB_ORIGIN: clean(process.env.WEB_ORIGIN),
   AUTH_SECRET: clean(process.env.AUTH_SECRET),
   SESSION_SECRET: clean(process.env.SESSION_SECRET),
+  GOOGLE_CLIENT_ID: clean(process.env.GOOGLE_CLIENT_ID),
+  GOOGLE_CLIENT_SECRET: clean(process.env.GOOGLE_CLIENT_SECRET),
+  GOOGLE_CALLBACK_URL: clean(process.env.GOOGLE_CALLBACK_URL),
   R2_ACCOUNT_ID: clean(process.env.R2_ACCOUNT_ID),
   R2_ACCESS_KEY_ID: clean(process.env.R2_ACCESS_KEY_ID),
   R2_SECRET_ACCESS_KEY: clean(process.env.R2_SECRET_ACCESS_KEY),
@@ -33,4 +39,3 @@ export const env = envSchema.parse({
   R2_PUBLIC_DOMAIN: clean(process.env.R2_PUBLIC_DOMAIN),
   RATE_LIMIT_ENABLED: clean(process.env.RATE_LIMIT_ENABLED),
 });
-
