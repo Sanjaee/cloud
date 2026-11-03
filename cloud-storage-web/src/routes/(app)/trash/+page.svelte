@@ -1,6 +1,7 @@
 <script lang="ts">
   import { apiRequest } from '$lib/api/client';
   import { selectionStore } from '$lib/stores/selection.store';
+  import { confirmDialog } from '$lib/stores/confirm.store';
   import UnifiedResourceGrid from '$lib/components/resource-grid/UnifiedResourceGrid.svelte';
   import { Trash2 } from 'lucide-svelte';
   import { onMount } from 'svelte';
@@ -33,7 +34,12 @@
   }
 
   async function handleSinglePermanentDelete(type: 'file' | 'folder', item: any) {
-    if (!confirm(`Hapus permanen "${item.name}"? File akan dihapus selamanya dari Cloudflare R2.`)) return;
+    if (!await confirmDialog({
+      title: 'Hapus Permanen',
+      description: `Hapus permanen "${item.name}"? File akan dihapus selamanya dari Cloudflare R2 dan kuota penyimpanan Anda akan dikembalikan. Tindakan ini tidak dapat dibatalkan.`,
+      confirmText: 'Hapus Selamanya',
+      variant: 'destructive',
+    })) return;
     try {
       await apiRequest(`/trash/permanent/${type}/${item.id}`, { method: 'DELETE' });
       await loadTrash();
@@ -73,7 +79,12 @@
   }
 
   async function handleEmptyTrash() {
-    if (!confirm('Apakah Anda yakin ingin menghapus permanen SEMUA item di sampah? Tindakan ini tidak dapat dibatalkan.')) return;
+    if (!await confirmDialog({
+      title: 'Kosongkan Tempat Sampah',
+      description: 'Apakah Anda yakin ingin menghapus permanen SEMUA item di sampah? Semua data akan dihapus selamanya dari Cloudflare R2 dan tindakan ini tidak dapat dibatalkan.',
+      confirmText: 'Kosongkan Semua',
+      variant: 'destructive',
+    })) return;
     try {
       await apiRequest('/trash/empty', { method: 'DELETE' });
       await loadTrash();

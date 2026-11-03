@@ -1,5 +1,6 @@
 <script lang="ts">
   import { selectionStore, type BatchResourceItem } from '$lib/stores/selection.store';
+  import { confirmDialog } from '$lib/stores/confirm.store';
   import { formatBytes } from '$lib/utils/file-size';
   import { timeAgo, formatDate } from '$lib/utils/format-date';
   import { getFileCategory } from '$lib/utils/file-type';
@@ -182,7 +183,12 @@
 
   async function triggerBatchPermanentDelete() {
     if (totalSelectedCount === 0 || !onBatchPermanentDelete) return;
-    if (!confirm(`Hapus permanen ${totalSelectedCount} item yang dipilih dari Cloudflare R2? Tindakan ini tidak dapat dibatalkan.`)) return;
+    if (!await confirmDialog({
+      title: 'Hapus Permanen Terpilih',
+      description: `Hapus permanen ${totalSelectedCount} item yang dipilih dari Cloudflare R2? Seluruh data akan dibersihkan selamanya dan tindakan ini tidak dapat dibatalkan.`,
+      confirmText: 'Hapus Permanen',
+      variant: 'destructive',
+    })) return;
     isActionBusy = true;
     try {
       await onBatchPermanentDelete(Array.from(selectedFileIds), Array.from(selectedFolderIds));

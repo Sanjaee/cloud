@@ -88,7 +88,7 @@
         </div>
         <div>
           <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">File Records</span>
-          <p class="text-lg font-bold text-white font-mono">{quota.fileRecordCount}</p>
+          <p class="text-lg font-bold text-white font-mono">{quota.fileCount}</p>
         </div>
       </div>
 

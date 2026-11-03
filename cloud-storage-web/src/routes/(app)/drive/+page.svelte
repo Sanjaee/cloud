@@ -6,6 +6,7 @@
   import { formatBytes } from '$lib/utils/file-size';
   import { timeAgo } from '$lib/utils/format-date';
   import { getFileCategory } from '$lib/utils/file-type';
+  import { confirmDialog } from '$lib/stores/confirm.store';
   import {
     Folder,
     FileText,
@@ -72,7 +73,7 @@
     if (categoryFilter === 'all') return files;
     return files.filter((f) => {
       const cat = getFileCategory(f.mimeType, f.name);
-      if (categoryFilter === 'documents') return cat === 'document' || cat === 'pdf' || cat === 'text' || cat === 'spreadsheet';
+      if (categoryFilter === 'documents') return cat === 'document' || cat === 'pdf' || cat === 'spreadsheet' || cat === 'presentation';
       if (categoryFilter === 'images') return cat === 'image';
       if (categoryFilter === 'media') return cat === 'video' || cat === 'audio';
       if (categoryFilter === 'archives') return cat === 'archive';
@@ -110,7 +111,12 @@
 
   async function handleBatchDelete() {
     if (totalSelectedCount === 0) return;
-    if (!confirm(`Are you sure you want to move ${totalSelectedCount} item(s) to trash?`)) return;
+    if (!await confirmDialog({
+      title: 'Pindahkan ke Sampah',
+      description: `Apakah Anda yakin ingin memindahkan ${totalSelectedCount} item yang dipilih ke Sampah? Item dapat dipulihkan kapan saja dari menu Trash.`,
+      confirmText: 'Pindahkan ke Sampah',
+      variant: 'destructive',
+    })) return;
 
     isBatchDeleting = true;
     try {

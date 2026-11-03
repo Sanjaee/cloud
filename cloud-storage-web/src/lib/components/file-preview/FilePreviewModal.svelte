@@ -113,7 +113,7 @@
                 PDF Document Viewer
               </span>
               <button
-                onclick={() => window.open(previewUrl, '_blank')}
+                onclick={() => previewUrl && window.open(previewUrl, '_blank')}
                 class="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 rounded-md text-white text-[11px] font-medium transition cursor-pointer"
                 title="Open in Full Window"
               >

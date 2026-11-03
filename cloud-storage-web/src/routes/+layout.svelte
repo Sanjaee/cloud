@@ -1,6 +1,7 @@
 <script lang="ts">
   import '../app.css';
   import { QueryClient, QueryClientProvider } from '@tanstack/svelte-query';
+  import GlobalConfirmDialog from '$lib/components/dialogs/GlobalConfirmDialog.svelte';
 
   let { children } = $props();
 
@@ -17,5 +18,6 @@
 
 <QueryClientProvider client={queryClient}>
   {@render children()}
+  <GlobalConfirmDialog />
 </QueryClientProvider>
 

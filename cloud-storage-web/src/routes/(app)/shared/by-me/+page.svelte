@@ -2,6 +2,7 @@
   import { apiRequest } from '$lib/api/client';
   import { formatBytes } from '$lib/utils/file-size';
   import { formatDate } from '$lib/utils/format-date';
+  import { confirmDialog } from '$lib/stores/confirm.store';
   import { Share2, FileText, Trash2, Users } from 'lucide-svelte';
   import { onMount } from 'svelte';
 
@@ -23,7 +24,12 @@
   }
 
   async function handleRevoke(type: 'file' | 'folder', resourceId: string, recipientEmail: string) {
-    if (!confirm(`Revoke sharing access for ${recipientEmail}?`)) return;
+    if (!await confirmDialog({
+      title: 'Revoke Collaborator Access',
+      description: `Apakah Anda yakin ingin mencabut hak akses berbagi untuk ${recipientEmail}? Pengguna tidak akan dapat mengakses item ini lagi.`,
+      confirmText: 'Revoke Access',
+      variant: 'destructive',
+    })) return;
     try {
       const collabsRes = await apiRequest(`/shares/${type}/${resourceId}/collaborators`);
       const targetCollab = collabsRes.collaborators?.find((c: any) => c.email === recipientEmail);
