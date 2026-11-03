@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { apiRequest } from '$lib/api/client';
   import { authStore } from '$lib/stores/auth.store';
-  import { Cloud, Lock, Mail, ShieldCheck, ArrowRight, AlertCircle, Sparkles, X, Eye, EyeOff } from 'lucide-svelte';
+  import { ShieldCheck, AlertCircle, Eye, EyeOff } from 'lucide-svelte';
 
   let email = $state('');
   let password = $state('');

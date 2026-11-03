@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { apiRequest } from '$lib/api/client';
-  import { Cloud, Lock, Mail, User, ArrowRight, AlertCircle, CheckCircle, ShieldCheck, Eye, EyeOff } from 'lucide-svelte';
+  import { AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-svelte';
 
   let email = $state('');
   let username = $state('');
