@@ -30,3 +30,4 @@ export const fallback: RequestHandler = async ({ request, params, url }) => {
     headers: response.headers,
   });
 };
+

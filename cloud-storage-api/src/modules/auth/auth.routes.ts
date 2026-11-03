@@ -77,7 +77,15 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   .get(
     '/google/callback',
     async ({ query, cookie, redirect, request }) => {
-      const frontendUrl = env.WEB_ORIGIN.split(',')[0].trim() || 'https://cloud-storage-web-seven.vercel.app';
+      // Resolve absolute frontend URL for OAuth redirection
+      const validOrigins = (env.WEB_ORIGIN || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.startsWith('http://') || s.startsWith('https://'));
+      const frontendUrl =
+        env.FRONTEND_URL && env.FRONTEND_URL.startsWith('http')
+          ? env.FRONTEND_URL
+          : validOrigins[0] || 'https://cloud-storage-web-seven.vercel.app';
 
       // Check if user cancelled or Google returned error
       if (query.error) {
