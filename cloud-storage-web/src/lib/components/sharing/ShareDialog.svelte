@@ -61,22 +61,20 @@
           permission: 'viewer',
         }),
       });
-      publicLinkUrl = `${window.location.origin}/share/${res.token}`;
+      publicLinkUrl = `${window.location.origin}/share/${res.publicLink.token}`;
     } catch {}
   }
 
-  async function handleSearch(query: string) {
-    recipientInput = query;
-    if (query.trim().length >= 2) {
-      try {
-        const res = await apiRequest(`/users/search?q=${encodeURIComponent(query)}`);
-        searchResults = res.users || [];
-      } catch {
-        searchResults = [];
-      }
-    } else {
+  async function handleSearch(q: string) {
+    recipientInput = q;
+    if (q.length < 2) {
       searchResults = [];
+      return;
     }
+    try {
+      const res = await apiRequest(`/users/search?q=${encodeURIComponent(q)}`);
+      searchResults = res.users || [];
+    } catch {}
   }
 
   async function handleShare() {
@@ -87,26 +85,22 @@
 
     try {
       if (batchResources && batchResources.length > 0) {
-        // Batch sharing
-        const items = batchResources.map((r) => ({
-          resourceType: r.type,
-          resourceId: r.item.id,
-        }));
+        // Multi-resource batch sharing
+        const fileIds = batchResources.filter((r) => r.type === 'file').map((r) => r.item.id);
+        const folderIds = batchResources.filter((r) => r.type === 'folder').map((r) => r.item.id);
 
         const res = await apiRequest('/shares/batch', {
           method: 'POST',
           body: JSON.stringify({
-            items,
+            fileIds,
+            folderIds,
             recipientEmailOrUsername: recipientInput.trim(),
             permission: selectedPermission,
             message: shareMessage || undefined,
           }),
         });
 
-        message = res.message || `Successfully shared ${items.length} items`;
-        recipientInput = '';
-        shareMessage = '';
-        searchResults = [];
+        message = res.message || `Shared ${batchResources.length} items successfully`;
         setTimeout(() => close(), 1500);
       } else if (resource) {
         // Single resource sharing
@@ -157,106 +151,108 @@
 </script>
 
 {#if resource || (batchResources && batchResources.length > 0)}
-  <div class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
-    <div class="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+  <div class="fixed inset-0 bg-black/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
+    <div class="w-full max-w-md bg-[#121214] rounded-xl shadow-2xl border border-zinc-800/80 overflow-hidden">
       <!-- Header -->
-      <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-950/60 flex items-center justify-center text-blue-600 shrink-0">
+      <div class="px-5 py-4 border-b border-zinc-800/80 flex items-center justify-between">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-300 flex items-center justify-center shrink-0">
             {#if batchResources}
-              <Layers class="w-5 h-5" />
+              <Layers class="w-4 h-4" />
             {:else}
-              <UserPlus class="w-5 h-5" />
+              <UserPlus class="w-4 h-4" />
             {/if}
           </div>
-          <div>
-            <h3 class="font-bold text-base text-slate-900 dark:text-white">
+          <div class="truncate">
+            <h3 class="font-semibold text-sm text-white truncate">
               {#if batchResources}
-                Share {batchResources.length} Selected Items
+                Share {batchResources.length} Items
               {:else}
                 Share "{resource?.item.name}"
               {/if}
             </h3>
-            <p class="text-xs text-slate-500 mt-0.5">
+            <p class="text-[11px] text-zinc-400 truncate">
               {#if batchResources}
-                Grant simultaneous collaborative access to all selected files & folders.
+                Simultaneous collaborator access
               {:else}
-                Native sharing: collaborators access the same Cloudflare R2 object with zero duplicate storage.
+                Native Cloudflare R2 zero-copy sharing
               {/if}
             </p>
           </div>
         </div>
 
-        <button onclick={close} class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
-          <X class="w-5 h-5" />
+        <button onclick={close} class="p-1 hover:bg-zinc-800 rounded-md text-zinc-400 hover:text-white cursor-pointer">
+          <X class="w-4 h-4" />
         </button>
       </div>
 
       <!-- Tabs -->
-      <div class="flex border-b border-slate-100 dark:border-slate-800 px-6">
+      <div class="flex border-b border-zinc-800/80 px-5 text-xs">
         <button
           onclick={() => (activeTab = 'users')}
-          class="py-3 px-2 text-xs font-semibold flex items-center gap-2 border-b-2 transition cursor-pointer {activeTab === 'users'
-            ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-            : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'}"
+          class="py-2.5 px-2 font-medium flex items-center gap-1.5 border-b-2 transition cursor-pointer {activeTab === 'users'
+            ? 'border-white text-white font-semibold'
+            : 'border-transparent text-zinc-400 hover:text-zinc-200'}"
         >
-          <UserPlus class="w-4 h-4" />
-          Share with people
+          <UserPlus class="w-3.5 h-3.5" />
+          Collaborators
         </button>
 
-        <button
-          onclick={() => (activeTab = 'link')}
-          class="py-3 px-2 text-xs font-semibold flex items-center gap-2 border-b-2 transition cursor-pointer {activeTab === 'link'
-            ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-            : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'}"
-        >
-          <Link class="w-4 h-4" />
-          Public share link
-        </button>
+        {#if !batchResources}
+          <button
+            onclick={() => (activeTab = 'link')}
+            class="py-2.5 px-2 font-medium flex items-center gap-1.5 border-b-2 transition cursor-pointer {activeTab === 'link'
+              ? 'border-white text-white font-semibold'
+              : 'border-transparent text-zinc-400 hover:text-zinc-200'}"
+          >
+            <Link class="w-3.5 h-3.5" />
+            Public Link
+          </button>
+        {/if}
       </div>
 
       <!-- Tab 1: Share with Users -->
       {#if activeTab === 'users'}
-        <div class="p-6 space-y-5">
+        <div class="p-5 space-y-4">
           {#if error}
-            <div class="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-xl text-xs text-red-700 dark:text-red-300 flex items-center gap-2">
-              <AlertCircle class="w-4 h-4 shrink-0" />
+            <div class="p-2.5 bg-red-950/40 border border-red-900/60 rounded-lg text-xs text-red-300 flex items-center gap-2">
+              <AlertCircle class="w-3.5 h-3.5 shrink-0" />
               <span>{error}</span>
             </div>
           {/if}
 
           {#if message}
-            <div class="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 rounded-xl text-xs text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
-              <Check class="w-4 h-4 shrink-0" />
+            <div class="p-2.5 bg-emerald-950/40 border border-emerald-900/60 rounded-lg text-xs text-emerald-300 flex items-center gap-2">
+              <Check class="w-3.5 h-3.5 shrink-0" />
               <span>{message}</span>
             </div>
           {/if}
 
           <!-- User input & permission -->
-          <div class="space-y-3">
+          <div class="space-y-2.5">
             <div class="flex gap-2">
               <div class="relative flex-1">
                 <input
                   type="text"
                   value={recipientInput}
                   oninput={(e) => handleSearch((e.target as HTMLInputElement).value)}
-                  placeholder="Enter email or username..."
-                  class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
+                  placeholder="Email or username..."
+                  class="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-xs focus:outline-none focus:border-zinc-700 text-white placeholder:text-zinc-500"
                 />
 
                 <!-- Autocomplete Dropdown -->
                 {#if searchResults.length > 0}
-                  <div class="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden z-20 divide-y divide-slate-100 dark:divide-slate-700">
+                  <div class="absolute left-0 right-0 top-full mt-1 bg-[#121214] border border-zinc-800 rounded-lg shadow-xl overflow-hidden z-20 divide-y divide-zinc-800/80">
                     {#each searchResults as u}
                       <button
                         onclick={() => {
                           recipientInput = u.email;
                           searchResults = [];
                         }}
-                        class="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/60 text-xs flex flex-col cursor-pointer"
+                        class="w-full text-left px-3 py-1.5 hover:bg-zinc-800 text-xs flex flex-col cursor-pointer"
                       >
-                        <span class="font-semibold text-slate-900 dark:text-white">{u.username}</span>
-                        <span class="text-slate-500 text-[11px]">{u.email}</span>
+                        <span class="font-medium text-white">{u.username}</span>
+                        <span class="text-zinc-400 text-[10px]">{u.email}</span>
                       </button>
                     {/each}
                   </div>
@@ -266,7 +262,7 @@
               <!-- Permission Level Selector -->
               <select
                 bind:value={selectedPermission}
-                class="px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                class="px-2.5 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-xs font-medium text-zinc-300 focus:outline-none focus:border-zinc-700 cursor-pointer"
               >
                 <option value="viewer">Viewer</option>
                 <option value="commenter">Commenter</option>
@@ -277,68 +273,69 @@
             <textarea
               bind:value={shareMessage}
               rows="2"
-              placeholder="Add an optional message..."
-              class="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white resize-none"
+              placeholder="Optional message..."
+              class="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-xs focus:outline-none focus:border-zinc-700 text-white placeholder:text-zinc-500 resize-none"
             ></textarea>
 
             <button
               onclick={handleShare}
               disabled={isSharing || !recipientInput.trim()}
-              class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-md transition disabled:opacity-50 cursor-pointer"
+              class="w-full py-2 bg-white text-zinc-950 hover:bg-zinc-200 rounded-lg text-xs font-semibold shadow-xs transition disabled:opacity-50 cursor-pointer active:scale-95"
             >
               {isSharing ? 'Sharing...' : 'Share Access'}
             </button>
           </div>
 
-          <!-- Active Collaborators List -->
-          <div>
-            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2.5 flex items-center gap-1.5">
-              <Users class="w-3.5 h-3.5" />
-              People with access
-            </h4>
+          <!-- Active Collaborators List (for single item) -->
+          {#if !batchResources}
+            <div>
+              <h4 class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-2 flex items-center gap-1.5">
+                <Users class="w-3 h-3" />
+                Collaborators
+              </h4>
 
-            <div class="space-y-2 max-h-48 overflow-y-auto">
-              <!-- Owner item -->
-              <div class="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl text-xs">
-                <div>
-                  <p class="font-semibold text-slate-900 dark:text-white">You</p>
-                  <p class="text-[11px] text-slate-400">Owner</p>
-                </div>
-                <span class="text-[11px] font-medium text-slate-500 bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-md">
-                  Owner
-                </span>
-              </div>
-
-              {#each collaborators as c}
-                <div class="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl text-xs">
+              <div class="space-y-1.5 max-h-36 overflow-y-auto">
+                <div class="flex items-center justify-between p-2 bg-zinc-900/60 rounded-lg text-xs">
                   <div>
-                    <p class="font-semibold text-slate-900 dark:text-white">{c.username}</p>
-                    <p class="text-[11px] text-slate-400">{c.email}</p>
+                    <p class="font-medium text-white">You</p>
+                    <p class="text-[10px] text-zinc-400">Owner</p>
                   </div>
-
-                  <div class="flex items-center gap-2">
-                    <span class="text-[11px] font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 px-2 py-0.5 rounded-md capitalize">
-                      {c.permission}
-                    </span>
-
-                    <button
-                      onclick={() => revokeAccess(c.userId)}
-                      class="p-1 hover:bg-red-50 dark:hover:bg-red-950 text-slate-400 hover:text-red-600 rounded cursor-pointer"
-                      title="Revoke access"
-                    >
-                      <Trash2 class="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                  <span class="text-[10px] font-medium text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded">
+                    Owner
+                  </span>
                 </div>
-              {/each}
+
+                {#each collaborators as c}
+                  <div class="flex items-center justify-between p-2 bg-zinc-900/60 rounded-lg text-xs">
+                    <div>
+                      <p class="font-medium text-white">{c.username}</p>
+                      <p class="text-[10px] text-zinc-400">{c.email}</p>
+                    </div>
+
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-[10px] font-medium text-zinc-300 bg-zinc-800 px-1.5 py-0.5 rounded capitalize">
+                        {c.permission}
+                      </span>
+
+                      <button
+                        onclick={() => revokeAccess(c.userId)}
+                        class="p-1 hover:bg-red-950/60 text-zinc-400 hover:text-red-400 rounded transition cursor-pointer"
+                        title="Revoke access"
+                      >
+                        <Trash2 class="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                {/each}
+              </div>
             </div>
-          </div>
+          {/if}
         </div>
       {:else}
         <!-- Tab 2: Public Share Link -->
-        <div class="p-6 space-y-4">
-          <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-            Anyone with this link can view and download this file directly via Cloudflare R2 short-lived presigned URLs.
+        <div class="p-5 space-y-3">
+          <p class="text-xs text-zinc-400 leading-relaxed">
+            Anyone with this link can view and download this file directly from Cloudflare R2 storage.
           </p>
 
           <div class="flex items-center gap-2">
@@ -346,19 +343,19 @@
               type="text"
               readonly
               value={publicLinkUrl}
-              class="flex-1 px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-700 dark:text-slate-300 font-mono select-all"
+              class="flex-1 px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-zinc-300 font-mono select-all focus:outline-none"
             />
 
             <button
               onclick={copyPublicLink}
-              class="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-md transition cursor-pointer shrink-0"
+              class="flex items-center gap-1.5 px-3 py-2 bg-white text-zinc-950 hover:bg-zinc-200 rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer shrink-0"
             >
               {#if linkCopied}
-                <Check class="w-4 h-4" />
-                Copied!
+                <Check class="w-3.5 h-3.5" />
+                Copied
               {:else}
-                <Copy class="w-4 h-4" />
-                Copy Link
+                <Copy class="w-3.5 h-3.5" />
+                Copy
               {/if}
             </button>
           </div>
@@ -367,4 +364,3 @@
     </div>
   </div>
 {/if}
-

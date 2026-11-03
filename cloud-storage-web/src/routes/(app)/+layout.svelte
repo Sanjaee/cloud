@@ -58,23 +58,23 @@
 </script>
 
 {#if isLoading}
-  <div class="flex h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
+  <div class="flex h-screen items-center justify-center bg-[#09090b] text-white">
     <div class="flex flex-col items-center gap-3">
-      <div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-      <p class="text-sm font-medium text-slate-500">Loading your workspace...</p>
+      <div class="w-7 h-7 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+      <p class="text-xs font-medium text-zinc-400">Loading your workspace...</p>
     </div>
   </div>
 {:else}
-  <div class="flex flex-col h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
+  <div class="flex flex-col h-screen overflow-hidden bg-[#09090b] text-zinc-100 font-sans antialiased">
     <Header />
 
-    <div class="flex flex-1 overflow-hidden">
+    <div class="flex flex-1 overflow-hidden relative">
       <Sidebar
         {quota}
         onNewFolder={() => (isNewFolderOpen = true)}
       />
 
-      <main class="flex-1 overflow-y-auto p-6">
+      <main class="flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6 bg-[#09090b]">
         {@render children()}
       </main>
     </div>

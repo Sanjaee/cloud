@@ -25,7 +25,6 @@
   async function handleRevoke(type: 'file' | 'folder', resourceId: string, recipientEmail: string) {
     if (!confirm(`Revoke sharing access for ${recipientEmail}?`)) return;
     try {
-      // Look up user id from search or collaborators and revoke
       const collabsRes = await apiRequest(`/shares/${type}/${resourceId}/collaborators`);
       const targetCollab = collabsRes.collaborators?.find((c: any) => c.email === recipientEmail);
       if (targetCollab) {
@@ -46,63 +45,62 @@
 
 <div class="space-y-6">
   <div>
-    <h1 class="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
-      <Share2 class="w-7 h-7 text-blue-600" />
-      Shared by me
+    <h1 class="text-xl font-bold text-white flex items-center gap-2">
+      <Share2 class="w-5 h-5 text-zinc-400" />
+      Shared by Me
     </h1>
-    <p class="text-xs text-slate-500 mt-1">
-      All files and folders you have granted collaborators access to. You can revoke access at any time.
+    <p class="text-xs text-zinc-400 mt-0.5">
+      All files and folders you have shared with other collaborators.
     </p>
   </div>
 
   {#if isLoading}
-    <div class="flex items-center justify-center py-20">
-      <div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+    <div class="flex flex-col items-center justify-center py-20 space-y-3">
+      <div class="w-7 h-7 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+      <p class="text-xs text-zinc-400 font-medium">Loading items shared by you...</p>
     </div>
   {:else if sharedFiles.length === 0 && sharedFolders.length === 0}
-    <div class="text-center py-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8">
-      <Share2 class="w-12 h-12 text-slate-400 mx-auto mb-3" />
-      <h3 class="font-bold text-slate-800 dark:text-slate-200 text-sm">You haven't shared any resources yet</h3>
-      <p class="text-xs text-slate-500 mt-1">Right-click on any file in My Drive and select "Share" to collaborate.</p>
+    <div class="text-center py-16 bg-[#121214] border border-zinc-800/80 rounded-2xl p-8 max-w-lg mx-auto">
+      <Share2 class="w-10 h-10 text-zinc-500 mx-auto mb-3" />
+      <h3 class="font-semibold text-white text-sm">You haven't shared any items yet</h3>
+      <p class="text-xs text-zinc-400 mt-1">Right-click on any file in My Drive and choose "Share" to collaborate.</p>
     </div>
   {:else}
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-xs">
+    <div class="bg-[#121214] border border-zinc-800/80 rounded-xl overflow-hidden shadow-xs">
       <table class="w-full text-left text-xs">
-        <thead class="bg-slate-50 dark:bg-slate-800/60 text-slate-500 uppercase font-semibold tracking-wider border-b border-slate-200 dark:border-slate-800">
+        <thead class="bg-zinc-900/80 text-zinc-400 uppercase font-semibold text-[11px] tracking-wider border-b border-zinc-800/80">
           <tr>
-            <th class="py-3 px-4">Resource</th>
-            <th class="py-3 px-4">Shared With</th>
-            <th class="py-3 px-4">Permission</th>
-            <th class="py-3 px-4">Size</th>
-            <th class="py-3 px-4">Shared On</th>
-            <th class="py-3 px-4 text-right">Revoke</th>
+            <th class="py-2.5 px-3">Name</th>
+            <th class="py-2.5 px-3">Recipient</th>
+            <th class="py-2.5 px-3">Role</th>
+            <th class="py-2.5 px-3">Date Shared</th>
+            <th class="py-2.5 px-3 text-right">Revoke</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+        <tbody class="divide-y divide-zinc-800/60">
           {#each sharedFiles as f}
-            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
-              <td class="py-3 px-4 font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
-                <FileText class="w-4 h-4 text-blue-500 shrink-0" />
+            <tr class="hover:bg-zinc-850/60 transition">
+              <td class="py-2.5 px-3 font-medium text-zinc-200 flex items-center gap-2">
+                <FileText class="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                 <span class="truncate max-w-xs">{f.fileName}</span>
               </td>
-              <td class="py-3 px-4 text-slate-600 dark:text-slate-400">
-                <span class="font-medium text-slate-900 dark:text-slate-200">{f.grantedToUsername}</span>
-                <span class="block text-[11px] text-slate-400">{f.grantedToEmail}</span>
+              <td class="py-2.5 px-3 text-zinc-400">
+                <span class="font-medium text-zinc-200">{f.recipientUsername}</span>
+                <span class="block text-[10px] text-zinc-500">{f.recipientEmail}</span>
               </td>
-              <td class="py-3 px-4">
-                <span class="px-2.5 py-1 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 rounded-lg text-[11px] font-semibold capitalize">
+              <td class="py-2.5 px-3">
+                <span class="px-2 py-0.5 bg-zinc-800 text-zinc-300 rounded text-[10px] font-medium capitalize">
                   {f.permission}
                 </span>
               </td>
-              <td class="py-3 px-4 text-slate-500">{formatBytes(f.size)}</td>
-              <td class="py-3 px-4 text-slate-500">{formatDate(f.grantedAt)}</td>
-              <td class="py-3 px-4 text-right">
+              <td class="py-2.5 px-3 text-zinc-500 text-[11px]">{formatDate(f.createdAt)}</td>
+              <td class="py-2.5 px-3 text-right">
                 <button
-                  onclick={() => handleRevoke('file', f.fileId, f.grantedToEmail)}
-                  class="p-1.5 hover:bg-red-50 dark:hover:bg-red-950 text-slate-400 hover:text-red-600 rounded-lg transition cursor-pointer"
+                  onclick={() => handleRevoke('file', f.fileId, f.recipientEmail)}
+                  class="p-1 hover:bg-red-950/60 text-zinc-400 hover:text-red-400 rounded transition cursor-pointer"
                   title="Revoke access"
                 >
-                  <Trash2 class="w-4 h-4" />
+                  <Trash2 class="w-3.5 h-3.5" />
                 </button>
               </td>
             </tr>
@@ -112,4 +110,3 @@
     </div>
   {/if}
 </div>
-

@@ -6,6 +6,7 @@ import { AppError } from '../../middleware/error-handler';
 import { authPlugin } from '../../middleware/authentication';
 import { PermissionEngine } from '../../services/permission-engine';
 import { createPresignedDownloadUrl } from '../../infrastructure/storage/cloudflare-r2/download';
+import { verifyR2Object } from '../../infrastructure/storage/cloudflare-r2/verify';
 
 export const downloadRoutes = new Elysia({ prefix: '/downloads' })
   .use(authPlugin)
@@ -32,6 +33,12 @@ export const downloadRoutes = new Elysia({ prefix: '/downloads' })
 
       if (!storageObj || storageObj.status !== 'ready') {
         throw new AppError(404, 'NOT_FOUND', 'File data is not ready or upload was not completed');
+      }
+
+      // Verify physical object exists in R2
+      const verification = await verifyR2Object(storageObj.storageKey);
+      if (!verification.exists) {
+        throw new AppError(404, 'NOT_FOUND', 'File object does not exist in R2 storage');
       }
 
       const { downloadUrl, expiresIn } = await createPresignedDownloadUrl(
@@ -80,6 +87,12 @@ export const downloadRoutes = new Elysia({ prefix: '/downloads' })
 
       if (!storageObj || storageObj.status !== 'ready') {
         throw new AppError(404, 'NOT_FOUND', 'File data is not ready or upload was not completed');
+      }
+
+      // Verify physical object exists in R2
+      const verification = await verifyR2Object(storageObj.storageKey);
+      if (!verification.exists) {
+        throw new AppError(404, 'NOT_FOUND', 'File object does not exist in R2 storage');
       }
 
       let previewMime = file.mimeType;
@@ -133,6 +146,12 @@ export const downloadRoutes = new Elysia({ prefix: '/downloads' })
         throw new AppError(404, 'NOT_FOUND', 'File data is not ready');
       }
 
+      // Verify physical object exists in R2
+      const verification = await verifyR2Object(storageObj.storageKey);
+      if (!verification.exists) {
+        throw new AppError(404, 'NOT_FOUND', 'File object does not exist in R2 storage');
+      }
+
       let mimeType = file.mimeType;
       if (file.name.toLowerCase().endsWith('.pdf')) {
         mimeType = 'application/pdf';
@@ -153,4 +172,3 @@ export const downloadRoutes = new Elysia({ prefix: '/downloads' })
       detail: { tags: ['Downloads'], summary: 'View/stream file directly via 302 redirect' },
     }
   );
-

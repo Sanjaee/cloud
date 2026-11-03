@@ -14,6 +14,8 @@ interface SelectionStoreState {
   sharingResource: { type: 'file' | 'folder'; item: FileItem | FolderItem } | null;
   batchSharingResources: BatchResourceItem[] | null;
   activeFolderId: string | null;
+  isSidebarOpen: boolean; // Mobile sheet toggle
+  isSidebarCollapsed: boolean; // Desktop rail toggle
 
   setViewMode: (mode: 'grid' | 'table') => void;
   toggleFileSelection: (id: string, multi?: boolean) => void;
@@ -24,6 +26,9 @@ interface SelectionStoreState {
   setSharingResource: (res: { type: 'file' | 'folder'; item: FileItem | FolderItem } | null) => void;
   setBatchSharingResources: (items: BatchResourceItem[] | null) => void;
   setActiveFolderId: (folderId: string | null) => void;
+  setSidebarOpen: (open: boolean) => void;
+  toggleSidebar: () => void;
+  toggleSidebarCollapse: () => void;
 }
 
 export const selectionStore = createStore<SelectionStoreState>((set) => ({
@@ -34,6 +39,8 @@ export const selectionStore = createStore<SelectionStoreState>((set) => ({
   sharingResource: null,
   batchSharingResources: null,
   activeFolderId: null,
+  isSidebarOpen: false,
+  isSidebarCollapsed: false,
 
   setViewMode: (mode) => set({ viewMode: mode }),
 
@@ -68,5 +75,10 @@ export const selectionStore = createStore<SelectionStoreState>((set) => ({
   setBatchSharingResources: (items) => set({ batchSharingResources: items }),
 
   setActiveFolderId: (folderId) => set({ activeFolderId: folderId }),
-}));
 
+  setSidebarOpen: (open) => set({ isSidebarOpen: open }),
+
+  toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
+
+  toggleSidebarCollapse: () => set((state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed })),
+}));

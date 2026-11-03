@@ -40,23 +40,23 @@
 </script>
 
 {#if isOpen}
-  <div class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
-    <div class="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6">
+  <div class="fixed inset-0 bg-black/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
+    <div class="w-full max-w-sm bg-[#121214] rounded-xl shadow-2xl border border-zinc-800/80 p-5">
       <div class="flex items-center justify-between mb-4">
-        <div class="flex items-center gap-2.5">
-          <div class="w-9 h-9 bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center">
-            <FolderPlus class="w-5 h-5" />
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 bg-zinc-800 text-zinc-300 rounded-lg flex items-center justify-center">
+            <FolderPlus class="w-4 h-4" />
           </div>
-          <h3 class="font-bold text-base text-slate-900 dark:text-white">New Folder</h3>
+          <h3 class="font-semibold text-sm text-white">New Folder</h3>
         </div>
 
-        <button onclick={onClose} class="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg cursor-pointer">
+        <button onclick={onClose} class="p-1 text-zinc-400 hover:text-white rounded-md cursor-pointer">
           <X class="w-4 h-4" />
         </button>
       </div>
 
       {#if error}
-        <p class="text-xs text-red-600 mb-3">{error}</p>
+        <p class="text-xs text-red-400 mb-3">{error}</p>
       {/if}
 
       <form onsubmit={handleSubmit} class="space-y-4">
@@ -65,28 +65,26 @@
           bind:value={folderName}
           placeholder="Folder title"
           required
-          class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
+          class="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-xs focus:outline-none focus:border-zinc-700 text-white placeholder:text-zinc-500"
         />
 
-        <div class="flex items-center justify-end gap-2 pt-2">
+        <div class="flex items-center justify-end gap-2 pt-1">
           <button
             type="button"
             onclick={onClose}
-            class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer"
+            class="px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition cursor-pointer"
           >
             Cancel
           </button>
-
           <button
             type="submit"
             disabled={isSubmitting || !folderName.trim()}
-            class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-md transition disabled:opacity-50 cursor-pointer"
+            class="px-3.5 py-1.5 bg-white text-zinc-950 hover:bg-zinc-200 rounded-lg text-xs font-semibold shadow-xs transition disabled:opacity-50 cursor-pointer active:scale-95"
           >
-            {isSubmitting ? 'Creating...' : 'Create'}
+            {isSubmitting ? 'Creating...' : 'Create Folder'}
           </button>
         </div>
       </form>
     </div>
   </div>
 {/if}
-
