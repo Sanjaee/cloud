@@ -5,6 +5,7 @@ import { eq, or, ilike, and, ne } from 'drizzle-orm';
 import { AppError } from '../../middleware/error-handler';
 import { authPlugin, requireAuth } from '../../middleware/authentication';
 import { QuotaEngine } from '../../services/quota-engine';
+import { APP_CONSTANTS } from '../../config/constants';
 
 export const userRoutes = new Elysia({ prefix: '/users' })
   .use(authPlugin)
