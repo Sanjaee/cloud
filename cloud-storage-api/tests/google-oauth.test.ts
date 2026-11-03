@@ -92,8 +92,8 @@ describe('Google OAuth Service', () => {
     }).returning();
 
     const mockCookie: any = {
-      rea_session: {
-        set: (opts: any) => { mockCookie.rea_session.opts = opts; },
+      zacode_session: {
+        set: (opts: any) => { mockCookie.zacode_session.opts = opts; },
         value: undefined,
       },
     };
@@ -109,7 +109,7 @@ describe('Google OAuth Service', () => {
     // Exchange ticket
     const exchanged = await GoogleOAuthService.exchangeTicketForSession(ticket, mockCookie);
     expect(exchanged.user.id).toBe(user.id);
-    expect(mockCookie.rea_session.opts.value).toBeDefined();
+    expect(mockCookie.zacode_session.opts.value).toBeDefined();
 
     // Reusing ticket must fail
     let reuseFailed = false;

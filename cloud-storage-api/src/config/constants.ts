@@ -1,6 +1,6 @@
 export const APP_CONSTANTS = {
   DEFAULT_STORAGE_QUOTA: 10 * 1024 * 1024 * 1024, // 10 GB
-  SESSION_COOKIE_NAME: 'rea_session',
+  SESSION_COOKIE_NAME: 'zacode_session',
   SESSION_DURATION_DAYS: 30,
   ACCESS_TOKEN_EXPIRATION_SEC: 15 * 60, // 15 minutes for mobile JWT
   REFRESH_TOKEN_EXPIRATION_DAYS: 90, // 90 days for mobile refresh

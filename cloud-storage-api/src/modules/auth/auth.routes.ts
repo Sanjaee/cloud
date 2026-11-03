@@ -686,7 +686,8 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
         await db.delete(sessions).where(eq(sessions.id, currentSessionId));
       }
       invalidateSessionCache();
-      cookie[APP_CONSTANTS.SESSION_COOKIE_NAME].remove();
+      cookie[APP_CONSTANTS.SESSION_COOKIE_NAME]?.remove();
+      cookie['rea_session']?.remove();
 
       return {
         success: true,
@@ -714,7 +715,8 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
         .where(eq(refreshTokens.userId, currentUser.id));
 
       invalidateSessionCache();
-      cookie[APP_CONSTANTS.SESSION_COOKIE_NAME].remove();
+      cookie[APP_CONSTANTS.SESSION_COOKIE_NAME]?.remove();
+      cookie['rea_session']?.remove();
 
       return {
         success: true,

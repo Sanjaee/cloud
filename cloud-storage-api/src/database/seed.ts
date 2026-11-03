@@ -3,7 +3,7 @@ import { users, userProfiles, folders } from '../database/schema';
 import { eq } from 'drizzle-orm';
 
 async function seed() {
-  console.log('Seeding REA Cloud Storage database...');
+  console.log('Seeding Zacode Cloud Storage database...');
 
   const passwordHash = await Bun.password.hash('Password123!', {
     algorithm: 'argon2id',
@@ -18,12 +18,12 @@ async function seed() {
       displayName: 'Afriza Ahmad',
     },
     {
-      email: 'demo@rea.cloud',
+      email: 'demo@zacode.cloud',
       username: 'demo',
       displayName: 'Demo User',
     },
     {
-      email: 'admin@rea.cloud',
+      email: 'admin@zacode.cloud',
       username: 'admin',
       displayName: 'System Admin',
     },

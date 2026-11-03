@@ -1,7 +1,7 @@
 import { app } from '../src/app';
 
 async function runTests() {
-  console.log('=== Starting REA Backend End-to-End Test Suite ===\n');
+  console.log('=== Starting Zacode Backend End-to-End Test Suite ===\n');
 
   // Helper fetch function directly against Elysia instance
   async function apiFetch(path: string, options: RequestInit = {}) {

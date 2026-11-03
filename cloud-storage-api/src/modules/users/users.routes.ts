@@ -140,7 +140,12 @@ export const userRoutes = new Elysia({ prefix: '/users' })
 
       // Delete user cascades to userProfiles, sessions, shortcuts, etc.
       await db.delete(users).where(eq(users.id, currentUser.id));
-      cookie['rea_session']?.remove();
+      if (cookie[APP_CONSTANTS.SESSION_COOKIE_NAME]?.remove) {
+        cookie[APP_CONSTANTS.SESSION_COOKIE_NAME].remove();
+      }
+      if (cookie['rea_session']?.remove) {
+        cookie['rea_session'].remove();
+      }
 
       return {
         success: true,

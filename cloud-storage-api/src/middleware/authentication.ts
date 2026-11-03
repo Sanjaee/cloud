@@ -97,12 +97,12 @@ export const authPlugin = new Elysia({ name: 'plugin:auth' })
     })
   )
   .derive({ as: 'scoped' }, async ({ cookie, headers, jwt, request }) => {
-    // 1. Try Web HttpOnly Session Cookie
-    let sessionCookie: string | undefined = (cookie[APP_CONSTANTS.SESSION_COOKIE_NAME]?.value as string) || undefined;
+    // 1. Try Web HttpOnly Session Cookie (supports zacode_session and legacy rea_session)
+    let sessionCookie: string | undefined = (cookie[APP_CONSTANTS.SESSION_COOKIE_NAME]?.value as string) || (cookie['rea_session']?.value as string) || undefined;
     if (!sessionCookie) {
       const cookieHeader = request.headers.get('cookie') || headers['cookie'];
       if (cookieHeader) {
-        const match = cookieHeader.match(new RegExp(`${APP_CONSTANTS.SESSION_COOKIE_NAME}=([^;]+)`));
+        const match = cookieHeader.match(/(?:zacode_session|rea_session)=([^;]+)/);
         if (match) sessionCookie = match[1].trim();
       }
     }

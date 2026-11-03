@@ -5,7 +5,7 @@ import { deleteR2Object } from '../src/infrastructure/storage/cloudflare-r2/dele
 
 async function testR2() {
   const testKey = `test/test-object-${Date.now()}.txt`;
-  const content = 'Hello Cloudflare R2 from REA Platform!';
+  const content = 'Hello Cloudflare R2 from Zacode Platform!';
   const contentLength = Buffer.byteLength(content);
   const mimeType = 'text/plain';
 
