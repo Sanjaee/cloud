@@ -13,16 +13,17 @@ export const notificationRoutes = new Elysia({ prefix: '/notifications' })
     async ({ currentUser }: any) => {
       if (!currentUser) throw new AppError(401, 'UNAUTHORIZED', 'Authentication required');
 
-      const items = await db.query.notifications.findMany({
-        where: eq(notifications.userId, currentUser.id),
-        orderBy: (n, { desc }) => [desc(n.createdAt)],
-        limit: 50,
-      });
-
-      const unreadCountRes = await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(notifications)
-        .where(and(eq(notifications.userId, currentUser.id), isNull(notifications.readAt)));
+      const [items, unreadCountRes] = await Promise.all([
+        db.query.notifications.findMany({
+          where: eq(notifications.userId, currentUser.id),
+          orderBy: (n, { desc }) => [desc(n.createdAt)],
+          limit: 50,
+        }),
+        db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(notifications)
+          .where(and(eq(notifications.userId, currentUser.id), isNull(notifications.readAt))),
+      ]);
 
       return {
         success: true,

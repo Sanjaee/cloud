@@ -13,29 +13,25 @@ export const quotaRoutes = new Elysia({ prefix: '/quotas' })
     async ({ currentUser }: any) => {
       if (!currentUser) throw new AppError(401, 'UNAUTHORIZED', 'Authentication required');
 
-      const user = await db.query.users.findFirst({
-        where: eq(users.id, currentUser.id),
-      });
+      const [user, fileCountRes, objCountRes, sharedCountRes] = await Promise.all([
+        db.query.users.findFirst({
+          where: eq(users.id, currentUser.id),
+        }),
+        db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(files)
+          .where(and(eq(files.ownerId, currentUser.id), isNull(files.deletedAt))),
+        db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(storageObjects)
+          .where(and(eq(storageObjects.ownerId, currentUser.id), eq(storageObjects.status, 'ready'))),
+        db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(filePermissions)
+          .where(eq(filePermissions.grantedTo, currentUser.id)),
+      ]);
 
       if (!user) throw new AppError(404, 'NOT_FOUND', 'User not found');
-
-      // Count user-owned files
-      const fileCountRes = await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(files)
-        .where(and(eq(files.ownerId, currentUser.id), isNull(files.deletedAt)));
-
-      // Count physical objects in R2
-      const objCountRes = await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(storageObjects)
-        .where(and(eq(storageObjects.ownerId, currentUser.id), eq(storageObjects.status, 'ready')));
-
-      // Count files shared with user (0 byte cost)
-      const sharedCountRes = await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(filePermissions)
-        .where(eq(filePermissions.grantedTo, currentUser.id));
 
       const fileCount = fileCountRes[0]?.count || 0;
       const physicalObjectCount = objCountRes[0]?.count || 0;
