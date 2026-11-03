@@ -135,5 +135,91 @@ export const trashRoutes = new Elysia({ prefix: '/trash' })
     {
       detail: { tags: ['Trash'], summary: 'Empty trash permanently' },
     }
+  )
+
+  // 5. Batch Restore items from trash
+  .post(
+    '/restore/batch',
+    async ({ currentUser, body }: any) => {
+      if (!currentUser) throw new AppError(401, 'UNAUTHORIZED', 'Authentication required');
+
+      const fileIds: string[] = Array.isArray(body?.fileIds) ? body.fileIds : [];
+      const folderIds: string[] = Array.isArray(body?.folderIds) ? body.folderIds : [];
+
+      let restoredFiles = 0;
+      let restoredFolders = 0;
+
+      for (const id of fileIds) {
+        const file = await db.query.files.findFirst({ where: eq(files.id, id) });
+        if (file && file.ownerId === currentUser.id) {
+          await FileLifecycleService.restoreFile(id);
+          restoredFiles++;
+        }
+      }
+
+      for (const id of folderIds) {
+        const folder = await db.query.folders.findFirst({ where: eq(folders.id, id) });
+        if (folder && folder.ownerId === currentUser.id) {
+          await FileLifecycleService.restoreFolder(id);
+          restoredFolders++;
+        }
+      }
+
+      return {
+        success: true,
+        message: `Berhasil memulihkan ${restoredFiles + restoredFolders} item`,
+        data: { restoredFiles, restoredFolders },
+      };
+    },
+    {
+      body: t.Object({
+        fileIds: t.Optional(t.Array(t.String())),
+        folderIds: t.Optional(t.Array(t.String())),
+      }),
+      detail: { tags: ['Trash'], summary: 'Batch restore items from trash' },
+    }
+  )
+
+  // 6. Batch Permanently Delete items from trash
+  .post(
+    '/permanent/batch',
+    async ({ currentUser, body }: any) => {
+      if (!currentUser) throw new AppError(401, 'UNAUTHORIZED', 'Authentication required');
+
+      const fileIds: string[] = Array.isArray(body?.fileIds) ? body.fileIds : [];
+      const folderIds: string[] = Array.isArray(body?.folderIds) ? body.folderIds : [];
+
+      let purgedFiles = 0;
+      let purgedFolders = 0;
+
+      for (const id of fileIds) {
+        const file = await db.query.files.findFirst({ where: eq(files.id, id) });
+        if (file && file.ownerId === currentUser.id) {
+          await FileLifecycleService.permanentlyDeleteFile(id);
+          purgedFiles++;
+        }
+      }
+
+      for (const id of folderIds) {
+        const folder = await db.query.folders.findFirst({ where: eq(folders.id, id) });
+        if (folder && folder.ownerId === currentUser.id) {
+          await FileLifecycleService.permanentlyDeleteFolder(id);
+          purgedFolders++;
+        }
+      }
+
+      return {
+        success: true,
+        message: `Berhasil menghapus permanen ${purgedFiles + purgedFolders} item`,
+        data: { purgedFiles, purgedFolders },
+      };
+    },
+    {
+      body: t.Object({
+        fileIds: t.Optional(t.Array(t.String())),
+        folderIds: t.Optional(t.Array(t.String())),
+      }),
+      detail: { tags: ['Trash'], summary: 'Batch permanently delete items from trash' },
+    }
   );
 

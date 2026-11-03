@@ -1,5 +1,6 @@
 <script lang="ts">
   import { selectionStore, type BatchResourceItem } from '$lib/stores/selection.store';
+  import { authStore } from '$lib/stores/auth.store';
   import { apiRequest } from '$lib/api/client';
   import {
     X,
@@ -73,12 +74,22 @@
     }
     try {
       const res = await apiRequest(`/users/search?q=${encodeURIComponent(q)}`);
-      searchResults = res.users || [];
+      const myId = authStore.getState().user?.id;
+      searchResults = (res.users || []).filter((u: any) => u.id !== myId);
     } catch {}
   }
 
   async function handleShare() {
     if (!recipientInput.trim()) return;
+
+    // Validate not sharing with self
+    const me = authStore.getState().user;
+    const target = recipientInput.trim().toLowerCase();
+    if (me && (target === me.email?.toLowerCase() || target === me.username?.toLowerCase())) {
+      error = 'Anda tidak dapat membagikan item kepada akun Anda sendiri';
+      return;
+    }
+
     isSharing = true;
     error = '';
     message = '';
@@ -88,10 +99,15 @@
         // Multi-resource batch sharing
         const fileIds = batchResources.filter((r) => r.type === 'file').map((r) => r.item.id);
         const folderIds = batchResources.filter((r) => r.type === 'folder').map((r) => r.item.id);
+        const items = batchResources.map((r) => ({
+          resourceType: r.type,
+          resourceId: r.item.id,
+        }));
 
         const res = await apiRequest('/shares/batch', {
           method: 'POST',
           body: JSON.stringify({
+            items,
             fileIds,
             folderIds,
             recipientEmailOrUsername: recipientInput.trim(),

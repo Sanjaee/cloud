@@ -121,7 +121,7 @@ export const sharingRoutes = new Elysia({ prefix: '/shares' })
     {
       body: t.Object({
         resourceType: t.Union([t.Literal('file'), t.Literal('folder')]),
-        resourceId: t.String({ format: 'uuid' }),
+        resourceId: t.String({ minLength: 1 }),
         recipientEmailOrUsername: t.String({ minLength: 1 }),
         permission: t.Union([t.Literal('viewer'), t.Literal('commenter'), t.Literal('editor')]),
         expiresAt: t.Optional(t.Nullable(t.String())),
@@ -137,7 +137,7 @@ export const sharingRoutes = new Elysia({ prefix: '/shares' })
     async ({ currentUser, body }: any) => {
       if (!currentUser) throw new AppError(401, 'UNAUTHORIZED', 'Authentication required');
 
-      const { items, recipientEmailOrUsername, permission, expiresAt, message } = body;
+      const { recipientEmailOrUsername, permission, expiresAt, message } = body;
 
       const recipient = await db.query.users.findFirst({
         where: or(
@@ -147,17 +147,45 @@ export const sharingRoutes = new Elysia({ prefix: '/shares' })
       });
 
       if (!recipient) {
-        throw new AppError(404, 'RECIPIENT_NOT_FOUND', 'Target user could not be found');
+        throw new AppError(404, 'RECIPIENT_NOT_FOUND', 'Pengguna tujuan tidak ditemukan');
       }
 
       if (recipient.id === currentUser.id) {
-        throw new AppError(400, 'CANNOT_SHARE_WITH_SELF', 'You already own these resources');
+        throw new AppError(400, 'CANNOT_SHARE_WITH_SELF', 'Anda tidak dapat membagikan item kepada akun Anda sendiri');
+      }
+
+      // Collect items from body.items, body.fileIds, body.folderIds
+      const itemsToShare: Array<{ resourceType: 'file' | 'folder'; resourceId: string }> = [];
+      if (Array.isArray(body.items)) {
+        for (const it of body.items) {
+          if (it?.resourceType && it?.resourceId) {
+            itemsToShare.push({ resourceType: it.resourceType, resourceId: it.resourceId });
+          }
+        }
+      }
+      if (Array.isArray(body.fileIds)) {
+        for (const fid of body.fileIds) {
+          if (fid && !itemsToShare.some((it) => it.resourceType === 'file' && it.resourceId === fid)) {
+            itemsToShare.push({ resourceType: 'file', resourceId: fid });
+          }
+        }
+      }
+      if (Array.isArray(body.folderIds)) {
+        for (const folId of body.folderIds) {
+          if (folId && !itemsToShare.some((it) => it.resourceType === 'folder' && it.resourceId === folId)) {
+            itemsToShare.push({ resourceType: 'folder', resourceId: folId });
+          }
+        }
+      }
+
+      if (itemsToShare.length === 0) {
+        throw new AppError(400, 'BAD_REQUEST', 'Pilih minimal satu file atau folder untuk dibagikan');
       }
 
       const expirationDate = expiresAt ? new Date(expiresAt) : null;
       let sharedCount = 0;
 
-      for (const item of items) {
+      for (const item of itemsToShare) {
         const { resourceType, resourceId } = item;
         try {
           if (resourceType === 'file') {
@@ -210,32 +238,38 @@ export const sharingRoutes = new Elysia({ prefix: '/shares' })
         } catch {}
       }
 
-      // Notify recipient
-      if (sharedCount > 0) {
-        await db.insert(notifications).values({
-          userId: recipient.id,
-          actorId: currentUser.id,
-          type: 'share_received',
-          resourceType: items[0]?.resourceType || 'file',
-          resourceId: items[0]?.resourceId,
-          message: `${currentUser.username} shared ${sharedCount} item(s) with you (${permission} access)${message ? `: "${message}"` : ''}`,
-        });
+      if (sharedCount === 0) {
+        throw new AppError(403, 'FORBIDDEN', 'Hanya pemilik file atau folder yang dapat membagikan hak akses');
       }
+
+      // Notify recipient
+      await db.insert(notifications).values({
+        userId: recipient.id,
+        actorId: currentUser.id,
+        type: 'share_received',
+        resourceType: itemsToShare[0]?.resourceType || 'file',
+        resourceId: itemsToShare[0]?.resourceId,
+        message: `${currentUser.username} membagikan ${sharedCount} item kepada Anda (akses ${permission})${message ? `: "${message}"` : ''}`,
+      });
 
       return {
         success: true,
-        message: `Successfully shared ${sharedCount} item(s) with ${recipient.username}`,
+        message: `Berhasil membagikan ${sharedCount} item kepada ${recipient.username}`,
         data: { sharedCount },
       };
     },
     {
       body: t.Object({
-        items: t.Array(
-          t.Object({
-            resourceType: t.Union([t.Literal('file'), t.Literal('folder')]),
-            resourceId: t.String({ format: 'uuid' }),
-          })
+        items: t.Optional(
+          t.Array(
+            t.Object({
+              resourceType: t.Union([t.Literal('file'), t.Literal('folder')]),
+              resourceId: t.String({ minLength: 1 }),
+            })
+          )
         ),
+        fileIds: t.Optional(t.Array(t.String())),
+        folderIds: t.Optional(t.Array(t.String())),
         recipientEmailOrUsername: t.String({ minLength: 1 }),
         permission: t.Union([t.Literal('viewer'), t.Literal('commenter'), t.Literal('editor')]),
         expiresAt: t.Optional(t.Nullable(t.String())),

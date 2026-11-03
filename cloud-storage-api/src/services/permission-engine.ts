@@ -36,6 +36,13 @@ export class PermissionEngine {
     });
 
     if (!file) {
+      // Check if file exists in trash and is owned by the current user
+      const trashedFile = await db.query.files.findFirst({
+        where: eq(files.id, fileId),
+      });
+      if (trashedFile && trashedFile.ownerId === userId) {
+        return { hasAccess: true, permission: 'owner', isOwner: true, source: 'owner' };
+      }
       return { hasAccess: false, permission: null, isOwner: false, source: null };
     }
 
