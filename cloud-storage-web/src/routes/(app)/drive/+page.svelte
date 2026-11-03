@@ -136,11 +136,14 @@
     loadData();
     window.addEventListener('click', onGlobalClick);
     window.addEventListener('folder-created', () => loadData(currentFolderId));
+    window.addEventListener('file-uploaded', () => loadData(currentFolderId));
   });
 
   onDestroy(() => {
     if (typeof window !== 'undefined') {
       window.removeEventListener('click', onGlobalClick);
+      window.removeEventListener('folder-created', () => loadData(currentFolderId));
+      window.removeEventListener('file-uploaded', () => loadData(currentFolderId));
     }
   });
 

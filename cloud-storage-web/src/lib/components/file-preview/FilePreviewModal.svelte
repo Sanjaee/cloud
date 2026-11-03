@@ -3,13 +3,14 @@
   import { apiRequest } from '$lib/api/client';
   import { formatBytes } from '$lib/utils/file-size';
   import { getFileCategory } from '$lib/utils/file-type';
-  import { X, Download, FileText, Share2, Info } from 'lucide-svelte';
+  import { X, Download, FileText, Share2, Info, AlertCircle } from 'lucide-svelte';
   import type { FileItem } from '$lib/api/types';
 
   let file = $state<FileItem | null>(null);
   let previewUrl = $state<string | null>(null);
   let textContent = $state<string | null>(null);
   let isLoading = $state(true);
+  let errorMsg = $state<string | null>(null);
 
   selectionStore.subscribe(async (s) => {
     file = s.previewFile;
@@ -17,6 +18,7 @@
       isLoading = true;
       previewUrl = null;
       textContent = null;
+      errorMsg = null;
       try {
         const res = await apiRequest(`/downloads/${file.id}/preview`);
         previewUrl = res.previewUrl;
@@ -29,8 +31,9 @@
             textContent = await raw.text();
           } catch {}
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to load preview:', err);
+        errorMsg = err.message || 'File preview is unavailable';
       } finally {
         isLoading = false;
       }
@@ -84,6 +87,12 @@
         <div class="flex flex-col items-center gap-3 text-slate-400">
           <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
           <span class="text-xs font-medium">Generating secure preview...</span>
+        </div>
+      {:else if errorMsg}
+        <div class="text-center p-8 bg-slate-900/60 border border-slate-800 rounded-2xl max-w-md">
+          <AlertCircle class="w-12 h-12 text-amber-500 mx-auto mb-3" />
+          <p class="text-sm font-semibold text-white">Preview Unavailable</p>
+          <p class="text-xs text-slate-400 mt-1 mb-4">{errorMsg}</p>
         </div>
       {:else if previewUrl}
         {@const category = getFileCategory(file.mimeType, file.name)}

@@ -8,6 +8,9 @@ import { QuotaEngine } from '../../services/quota-engine';
 import { PermissionEngine } from '../../services/permission-engine';
 import { createPresignedUploadUrl } from '../../infrastructure/storage/cloudflare-r2/upload';
 import { verifyR2Object } from '../../infrastructure/storage/cloudflare-r2/verify';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { r2Client, BUCKET_NAME } from '../../infrastructure/storage/cloudflare-r2/client';
+import { configureR2Cors } from '../../infrastructure/storage/cloudflare-r2/cors';
 import {
   initiateMultipartUpload,
   getPresignedPartUrl,
@@ -292,6 +295,129 @@ export const uploadRoutes = new Elysia({ prefix: '/uploads' })
         ),
       }),
       detail: { tags: ['Uploads'], summary: 'Complete and verify uploaded object' },
+    }
+  )
+
+  // 4. Direct Upload via Server (Ultra-reliable & for files <= 4MB)
+  .post(
+    '/direct',
+    async ({ currentUser, body }: any) => {
+      if (!currentUser) throw new AppError(401, 'UNAUTHORIZED', 'Authentication required');
+
+      const file = body.file as File;
+      const folderId = body.folderId || null;
+
+      if (!file) throw new AppError(400, 'FILE_REQUIRED', 'No file was provided in the upload request');
+
+      const size = file.size;
+      const mimeType = file.type || 'application/octet-stream';
+      const filename = file.name;
+
+      // Check max size
+      if (size > APP_CONSTANTS.MAX_UPLOAD_SIZE_BYTES) {
+        throw new AppError(400, 'FILE_TOO_LARGE', 'File exceeds maximum upload size');
+      }
+
+      // Check quota
+      const quota = await QuotaEngine.checkQuota(currentUser.id, size);
+      if (!quota.allowed) {
+        throw new AppError(
+          400,
+          'QUOTA_EXCEEDED',
+          `Insufficient storage quota. Required: ${size} bytes, Available: ${quota.availableBytes} bytes`
+        );
+      }
+
+      // Verify folder permission if target folder specified
+      if (folderId) {
+        const perm = await PermissionEngine.resolveFolderPermission(currentUser.id, folderId);
+        if (!perm.hasAccess || !PermissionEngine.can('editor', perm.permission)) {
+          throw new AppError(403, 'FORBIDDEN', 'Editor permission required in target folder');
+        }
+      }
+
+      // Upload directly to Cloudflare R2 from backend server
+      const objectUuid = crypto.randomUUID();
+      const storageKey = `objects/${objectUuid}`;
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      await r2Client.send(
+        new PutObjectCommand({
+          Bucket: BUCKET_NAME,
+          Key: storageKey,
+          ContentType: mimeType,
+          Body: buffer,
+        })
+      );
+
+      // Create storageObject with ready status
+      const [storageObj] = await db
+        .insert(storageObjects)
+        .values({
+          ownerId: currentUser.id,
+          storageKey,
+          mimeType,
+          size,
+          status: 'ready',
+        })
+        .returning();
+
+      // Create file representation
+      const [fileRecord] = await db
+        .insert(files)
+        .values({
+          ownerId: currentUser.id,
+          folderId: folderId || null,
+          storageObjectId: storageObj.id,
+          name: filename,
+          originalName: filename,
+          mimeType,
+          size,
+        })
+        .returning();
+
+      // Increment quota usage atomically
+      await QuotaEngine.incrementUsage(currentUser.id, size);
+
+      return {
+        success: true,
+        message: 'File uploaded and verified successfully',
+        data: { file: fileRecord },
+      };
+    },
+    {
+      body: t.Object({
+        file: t.File(),
+        folderId: t.Optional(t.Nullable(t.String())),
+      }),
+      detail: { tags: ['Uploads'], summary: 'Direct atomic upload via API backend' },
+    }
+  )
+
+  // 5. Setup Cloudflare R2 CORS rules
+  .post(
+    '/setup-cors',
+    async () => {
+      try {
+        const rules = await configureR2Cors();
+        return {
+          success: true,
+          message: 'Cloudflare R2 CORS configured successfully',
+          data: { rules },
+        };
+      } catch (err: any) {
+        return {
+          success: false,
+          error: {
+            code: 'R2_CORS_ERROR',
+            message: err.message || 'Failed to configure Cloudflare R2 CORS',
+          },
+        };
+      }
+    },
+    {
+      detail: { tags: ['Uploads'], summary: 'Configure CORS on Cloudflare R2 bucket' },
     }
   );
 

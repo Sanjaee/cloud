@@ -30,7 +30,9 @@ export const downloadRoutes = new Elysia({ prefix: '/downloads' })
         where: eq(storageObjects.id, file.storageObjectId),
       });
 
-      if (!storageObj) throw new AppError(404, 'NOT_FOUND', 'Storage object not found');
+      if (!storageObj || storageObj.status !== 'ready') {
+        throw new AppError(404, 'NOT_FOUND', 'File data is not ready or upload was not completed');
+      }
 
       const { downloadUrl, expiresIn } = await createPresignedDownloadUrl(
         storageObj.storageKey,
@@ -76,7 +78,9 @@ export const downloadRoutes = new Elysia({ prefix: '/downloads' })
         where: eq(storageObjects.id, file.storageObjectId),
       });
 
-      if (!storageObj) throw new AppError(404, 'NOT_FOUND', 'Storage object not found');
+      if (!storageObj || storageObj.status !== 'ready') {
+        throw new AppError(404, 'NOT_FOUND', 'File data is not ready or upload was not completed');
+      }
 
       const { downloadUrl, expiresIn } = await createPresignedDownloadUrl(
         storageObj.storageKey,

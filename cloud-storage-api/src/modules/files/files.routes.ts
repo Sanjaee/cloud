@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia';
 import { db } from '../../infrastructure/database/client';
-import { files, folders, users } from '../../database/schema';
+import { files, folders, users, storageObjects } from '../../database/schema';
 import { eq, and, isNull, sql } from 'drizzle-orm';
 import { AppError } from '../../middleware/error-handler';
 import { authPlugin } from '../../middleware/authentication';
@@ -23,26 +23,63 @@ export const fileRoutes = new Elysia({ prefix: '/files' })
         const perm = await PermissionEngine.resolveFolderPermission(currentUser.id, folderId);
         if (!perm.hasAccess) throw new AppError(403, 'FORBIDDEN', 'Access denied to this folder');
 
-        fileList = await db.query.files.findMany({
-          where: and(eq(files.folderId, folderId), isNull(files.deletedAt)),
-          orderBy: (f, { asc }) => [asc(f.name)],
-        });
+        fileList = await db
+          .select({
+            id: files.id,
+            ownerId: files.ownerId,
+            folderId: files.folderId,
+            storageObjectId: files.storageObjectId,
+            name: files.name,
+            originalName: files.originalName,
+            mimeType: files.mimeType,
+            size: files.size,
+            isStarred: files.isStarred,
+            createdAt: files.createdAt,
+            updatedAt: files.updatedAt,
+          })
+          .from(files)
+          .innerJoin(storageObjects, eq(files.storageObjectId, storageObjects.id))
+          .where(
+            and(
+              eq(files.folderId, folderId),
+              isNull(files.deletedAt),
+              eq(storageObjects.status, 'ready')
+            )
+          )
+          .orderBy(files.name);
       } else {
-        // My Drive root files (owned by user and no folder)
-        fileList = await db.query.files.findMany({
-          where: and(
-            eq(files.ownerId, currentUser.id),
-            isNull(files.folderId),
-            isNull(files.deletedAt)
-          ),
-          orderBy: (f, { asc }) => [asc(f.name)],
-        });
+        // My Drive root files (owned by user and ready in storage)
+        fileList = await db
+          .select({
+            id: files.id,
+            ownerId: files.ownerId,
+            folderId: files.folderId,
+            storageObjectId: files.storageObjectId,
+            name: files.name,
+            originalName: files.originalName,
+            mimeType: files.mimeType,
+            size: files.size,
+            isStarred: files.isStarred,
+            createdAt: files.createdAt,
+            updatedAt: files.updatedAt,
+          })
+          .from(files)
+          .innerJoin(storageObjects, eq(files.storageObjectId, storageObjects.id))
+          .where(
+            and(
+              eq(files.ownerId, currentUser.id),
+              isNull(files.folderId),
+              isNull(files.deletedAt),
+              eq(storageObjects.status, 'ready')
+            )
+          )
+          .orderBy(files.name);
       }
 
       return {
         success: true,
         data: {
-          files: fileList.map(f => ({
+          files: fileList.map((f) => ({
             id: f.id,
             ownerId: f.ownerId,
             folderId: f.folderId,
@@ -61,7 +98,7 @@ export const fileRoutes = new Elysia({ prefix: '/files' })
     },
     {
       query: t.Object({ folderId: t.Optional(t.String({ format: 'uuid' })) }),
-      detail: { tags: ['Files'], summary: 'List files in a folder or root' },
+      detail: { tags: ['Files'], summary: 'List verified ready files in a folder or root' },
     }
   )
 

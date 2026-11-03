@@ -132,77 +132,140 @@ export const uploadStore = createStore<UploadStoreState>((set, get) => ({
     }));
 
     try {
-      // 1. Request upload session from backend
-      const initData = await apiRequest('/uploads/initiate', {
-        method: 'POST',
-        body: JSON.stringify({
-          filename: nextItem.name,
-          mimeType: nextItem.mimeType,
-          size: nextItem.size,
-          folderId: nextItem.folderId,
-        }),
-      });
+      // Strategy:
+      // For files <= 4MB: Use direct API upload (ultra-reliable, avoids cross-origin CORS limitations)
+      // For files > 4MB: Use presigned Cloudflare R2 direct PUT upload
+      if (nextItem.size <= 4 * 1024 * 1024) {
+        const formData = new FormData();
+        formData.append('file', nextItem.file);
+        if (nextItem.folderId) {
+          formData.append('folderId', nextItem.folderId);
+        }
 
-      const { uploadSessionId, uploadUrl } = initData;
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          const startTime = Date.now();
 
-      // 2. Direct upload to Cloudflare R2 via XMLHttpRequest for live byte progress
-      await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        let startTime = Date.now();
+          xhr.open('POST', '/api/v1/uploads/direct', true);
+          xhr.withCredentials = true;
 
-        xhr.open('PUT', uploadUrl, true);
-        xhr.setRequestHeader('Content-Type', nextItem.mimeType);
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const percent = Math.round((event.loaded / event.total) * 100);
+              const elapsedSec = (Date.now() - startTime) / 1000;
+              const speed = elapsedSec > 0 ? event.loaded / elapsedSec : 0;
+              const remainingBytes = event.total - event.loaded;
+              const timeRemaining = speed > 0 ? Math.round(remainingBytes / speed) : 0;
 
-        xhr.upload.onprogress = (event) => {
-          if (event.lengthComputable) {
-            const percent = Math.round((event.loaded / event.total) * 100);
-            const elapsedSec = (Date.now() - startTime) / 1000;
-            const speed = elapsedSec > 0 ? event.loaded / elapsedSec : 0;
-            const remainingBytes = event.total - event.loaded;
-            const timeRemaining = speed > 0 ? Math.round(remainingBytes / speed) : 0;
+              set((state) => ({
+                items: state.items.map((i) =>
+                  i.id === nextItem.id
+                    ? {
+                        ...i,
+                        progress: percent,
+                        bytesUploaded: event.loaded,
+                        speedBytesPerSec: speed,
+                        timeRemainingSec: timeRemaining,
+                        xhr,
+                      }
+                    : i
+                ),
+              }));
+            }
+          };
 
-            set((state) => ({
-              items: state.items.map((i) =>
-                i.id === nextItem.id
-                  ? {
-                      ...i,
-                      progress: percent,
-                      bytesUploaded: event.loaded,
-                      speedBytesPerSec: speed,
-                      timeRemainingSec: timeRemaining,
-                      xhr,
-                    }
-                  : i
-              ),
-            }));
-          }
-        };
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve();
+            } else {
+              try {
+                const data = JSON.parse(xhr.responseText);
+                reject(new Error(data?.error?.message || data?.message || `Upload failed (${xhr.status})`));
+              } catch {
+                reject(new Error(`Upload failed with status ${xhr.status}`));
+              }
+            }
+          };
 
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve();
-          } else {
-            reject(new Error(`R2 storage upload failed with status ${xhr.status}`));
-          }
-        };
+          xhr.onerror = () => reject(new Error('Network error during file upload'));
+          xhr.onabort = () => reject(new Error('Upload cancelled'));
 
-        xhr.onerror = () => reject(new Error('Network error during R2 direct transfer'));
-        xhr.onabort = () => reject(new Error('Upload cancelled'));
+          xhr.send(formData);
+        });
+      } else {
+        // Files > 4MB: Presigned Direct R2 Upload
+        // 1. Request upload session from backend
+        const initData = await apiRequest('/uploads/initiate', {
+          method: 'POST',
+          body: JSON.stringify({
+            filename: nextItem.name,
+            mimeType: nextItem.mimeType,
+            size: nextItem.size,
+            folderId: nextItem.folderId,
+          }),
+        });
 
-        xhr.send(nextItem.file);
-      });
+        const { uploadSessionId, uploadUrl } = initData;
 
-      // 3. Complete and verify with backend
-      set((state) => ({
-        items: state.items.map((i) =>
-          i.id === nextItem.id ? { ...i, status: 'verifying', progress: 99 } : i
-        ),
-      }));
+        // 2. Direct upload to Cloudflare R2 via XMLHttpRequest for live byte progress
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          const startTime = Date.now();
 
-      await apiRequest('/uploads/complete', {
-        method: 'POST',
-        body: JSON.stringify({ uploadSessionId }),
-      });
+          xhr.open('PUT', uploadUrl, true);
+          xhr.setRequestHeader('Content-Type', nextItem.mimeType);
+
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const percent = Math.round((event.loaded / event.total) * 100);
+              const elapsedSec = (Date.now() - startTime) / 1000;
+              const speed = elapsedSec > 0 ? event.loaded / elapsedSec : 0;
+              const remainingBytes = event.total - event.loaded;
+              const timeRemaining = speed > 0 ? Math.round(remainingBytes / speed) : 0;
+
+              set((state) => ({
+                items: state.items.map((i) =>
+                  i.id === nextItem.id
+                    ? {
+                        ...i,
+                        progress: percent,
+                        bytesUploaded: event.loaded,
+                        speedBytesPerSec: speed,
+                        timeRemainingSec: timeRemaining,
+                        xhr,
+                      }
+                    : i
+                ),
+              }));
+            }
+          };
+
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve();
+            } else {
+              reject(new Error(`R2 storage upload failed with status ${xhr.status}`));
+            }
+          };
+
+          xhr.onerror = () => reject(new Error('Network error during R2 direct transfer'));
+          xhr.onabort = () => reject(new Error('Upload cancelled'));
+
+          xhr.send(nextItem.file);
+        });
+
+        // 3. Complete and verify with backend
+        set((state) => ({
+          items: state.items.map((i) =>
+            i.id === nextItem.id ? { ...i, status: 'verifying', progress: 99 } : i
+          ),
+        }));
+
+        await apiRequest('/uploads/complete', {
+          method: 'POST',
+          body: JSON.stringify({ uploadSessionId }),
+        });
+      }
 
       set((state) => ({
         items: state.items.map((i) =>
@@ -212,6 +275,11 @@ export const uploadStore = createStore<UploadStoreState>((set, get) => ({
         ),
         activeUploadCount: Math.max(0, state.activeUploadCount - 1),
       }));
+
+      // Notify drive view to refresh immediately
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('file-uploaded'));
+      }
     } catch (err: any) {
       set((state) => ({
         items: state.items.map((i) =>
