@@ -1,10 +1,10 @@
 import { Elysia, t } from 'elysia';
-import { db } from '@/infrastructure/database/client';
-import { users, userProfiles, files, folders, shortcuts, notifications } from '@/database/schema';
+import { db } from '../../infrastructure/database/client';
+import { users, userProfiles, files, folders, shortcuts, notifications } from '../../database/schema';
 import { eq, or, ilike, and, ne } from 'drizzle-orm';
-import { AppError } from '@/middleware/error-handler';
-import { authPlugin, requireAuth } from '@/middleware/authentication';
-import { QuotaEngine } from '@/services/quota-engine';
+import { AppError } from '../../middleware/error-handler';
+import { authPlugin, requireAuth } from '../../middleware/authentication';
+import { QuotaEngine } from '../../services/quota-engine';
 
 export const userRoutes = new Elysia({ prefix: '/users' })
   .use(authPlugin)

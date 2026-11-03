@@ -1,11 +1,11 @@
 import { Elysia, t } from 'elysia';
-import { db } from '@/infrastructure/database/client';
-import { shareLinks, files, folders, storageObjects } from '@/database/schema';
+import { db } from '../../infrastructure/database/client';
+import { shareLinks, files, folders, storageObjects } from '../../database/schema';
 import { eq, and, isNull, gt } from 'drizzle-orm';
-import { AppError } from '@/middleware/error-handler';
-import { authPlugin, hashToken } from '@/middleware/authentication';
-import { PermissionEngine } from '@/services/permission-engine';
-import { createPresignedDownloadUrl } from '@/infrastructure/storage/cloudflare-r2/download';
+import { AppError } from '../../middleware/error-handler';
+import { authPlugin, hashToken } from '../../middleware/authentication';
+import { PermissionEngine } from '../../services/permission-engine';
+import { createPresignedDownloadUrl } from '../../infrastructure/storage/cloudflare-r2/download';
 
 export const publicLinkRoutes = new Elysia({ prefix: '/public-links' })
   .use(authPlugin)

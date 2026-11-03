@@ -1,10 +1,10 @@
 import { Elysia, t } from 'elysia';
-import { db } from '@/infrastructure/database/client';
-import { shortcuts, files, folders, users } from '@/database/schema';
+import { db } from '../../infrastructure/database/client';
+import { shortcuts, files, folders, users } from '../../database/schema';
 import { eq, and, isNull } from 'drizzle-orm';
-import { AppError } from '@/middleware/error-handler';
-import { authPlugin } from '@/middleware/authentication';
-import { PermissionEngine } from '@/services/permission-engine';
+import { AppError } from '../../middleware/error-handler';
+import { authPlugin } from '../../middleware/authentication';
+import { PermissionEngine } from '../../services/permission-engine';
 
 export const shortcutRoutes = new Elysia({ prefix: '/shortcuts' })
   .use(authPlugin)

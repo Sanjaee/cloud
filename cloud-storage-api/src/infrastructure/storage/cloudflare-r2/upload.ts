@@ -1,7 +1,7 @@
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { r2Client, BUCKET_NAME } from './client';
-import { APP_CONSTANTS } from '@/config/constants';
+import { APP_CONSTANTS } from '../../../config/constants';
 
 export async function createPresignedUploadUrl(
   storageKey: string,

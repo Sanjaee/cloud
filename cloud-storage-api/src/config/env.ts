@@ -16,19 +16,21 @@ const envSchema = z.object({
   RATE_LIMIT_ENABLED: z.string().default('true'),
 });
 
+const clean = (val?: string) => (val ? val.replace(/^\uFEFF/, '').trim() : undefined);
+
 export const env = envSchema.parse({
-  NODE_ENV: process.env.NODE_ENV,
-  PORT: process.env.PORT,
-  DATABASE_URL: process.env.DATABASE_URL,
-  WEB_ORIGIN: process.env.WEB_ORIGIN,
-  AUTH_SECRET: process.env.AUTH_SECRET,
-  SESSION_SECRET: process.env.SESSION_SECRET,
-  R2_ACCOUNT_ID: process.env.R2_ACCOUNT_ID,
-  R2_ACCESS_KEY_ID: process.env.R2_ACCESS_KEY_ID,
-  R2_SECRET_ACCESS_KEY: process.env.R2_SECRET_ACCESS_KEY,
-  R2_BUCKET_NAME: process.env.R2_BUCKET_NAME || 'lostmedia',
-  R2_ENDPOINT: process.env.R2_ENDPOINT,
-  R2_PUBLIC_DOMAIN: process.env.R2_PUBLIC_DOMAIN,
-  RATE_LIMIT_ENABLED: process.env.RATE_LIMIT_ENABLED,
+  NODE_ENV: clean(process.env.NODE_ENV),
+  PORT: clean(process.env.PORT),
+  DATABASE_URL: clean(process.env.DATABASE_URL),
+  WEB_ORIGIN: clean(process.env.WEB_ORIGIN),
+  AUTH_SECRET: clean(process.env.AUTH_SECRET),
+  SESSION_SECRET: clean(process.env.SESSION_SECRET),
+  R2_ACCOUNT_ID: clean(process.env.R2_ACCOUNT_ID),
+  R2_ACCESS_KEY_ID: clean(process.env.R2_ACCESS_KEY_ID),
+  R2_SECRET_ACCESS_KEY: clean(process.env.R2_SECRET_ACCESS_KEY),
+  R2_BUCKET_NAME: clean(process.env.R2_BUCKET_NAME) || 'lostmedia',
+  R2_ENDPOINT: clean(process.env.R2_ENDPOINT),
+  R2_PUBLIC_DOMAIN: clean(process.env.R2_PUBLIC_DOMAIN),
+  RATE_LIMIT_ENABLED: clean(process.env.RATE_LIMIT_ENABLED),
 });
 

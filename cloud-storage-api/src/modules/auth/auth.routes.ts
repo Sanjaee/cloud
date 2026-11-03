@@ -1,10 +1,10 @@
 import { Elysia, t } from 'elysia';
-import { db } from '@/infrastructure/database/client';
-import { users, userProfiles, sessions, emailVerificationTokens, refreshTokens, mfaCredentials, securityEvents } from '@/database/schema';
+import { db } from '../../infrastructure/database/client';
+import { users, userProfiles, sessions, emailVerificationTokens, refreshTokens, mfaCredentials, securityEvents } from '../../database/schema';
 import { eq, and, gt } from 'drizzle-orm';
-import { AppError } from '@/middleware/error-handler';
-import { hashToken, authPlugin } from '@/middleware/authentication';
-import { APP_CONSTANTS } from '@/config/constants';
+import { AppError } from '../../middleware/error-handler';
+import { hashToken, authPlugin } from '../../middleware/authentication';
+import { APP_CONSTANTS } from '../../config/constants';
 import { authenticator } from 'otplib';
 
 export const authRoutes = new Elysia({ prefix: '/auth' })

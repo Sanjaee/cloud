@@ -1,10 +1,10 @@
 import { Elysia, t } from 'elysia';
-import { db } from '@/infrastructure/database/client';
-import { users, sessions, passwordResetTokens, securityEvents } from '@/database/schema';
+import { db } from '../../infrastructure/database/client';
+import { users, sessions, passwordResetTokens, securityEvents } from '../../database/schema';
 import { eq, and, gt } from 'drizzle-orm';
-import { AppError } from '@/middleware/error-handler';
-import { authPlugin, hashToken } from '@/middleware/authentication';
-import { APP_CONSTANTS } from '@/config/constants';
+import { AppError } from '../../middleware/error-handler';
+import { authPlugin, hashToken } from '../../middleware/authentication';
+import { APP_CONSTANTS } from '../../config/constants';
 
 export const securityRoutes = new Elysia({ prefix: '/security' })
   .use(authPlugin)

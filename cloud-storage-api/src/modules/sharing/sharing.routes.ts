@@ -1,5 +1,5 @@
 import { Elysia, t } from 'elysia';
-import { db } from '@/infrastructure/database/client';
+import { db } from '../../infrastructure/database/client';
 import {
   files,
   folders,
@@ -7,11 +7,11 @@ import {
   filePermissions,
   folderPermissions,
   notifications,
-} from '@/database/schema';
+} from '../../database/schema';
 import { eq, and, or, isNull, inArray, sql } from 'drizzle-orm';
-import { AppError } from '@/middleware/error-handler';
-import { authPlugin } from '@/middleware/authentication';
-import { PermissionEngine } from '@/services/permission-engine';
+import { AppError } from '../../middleware/error-handler';
+import { authPlugin } from '../../middleware/authentication';
+import { PermissionEngine } from '../../services/permission-engine';
 
 export const sharingRoutes = new Elysia({ prefix: '/shares' })
   .use(authPlugin)

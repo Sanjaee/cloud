@@ -2,7 +2,7 @@ import { app } from './app';
 import { env } from './config/env';
 
 // When running locally under Bun, start server
-if (process.env.VERCEL !== '1') {
+if (!process.env.VERCEL) {
   const port = Number(env.PORT) || 3000;
   app.listen(port, () => {
     console.log(`🚀 REA Cloud Storage API running at http://localhost:${port}`);
@@ -12,4 +12,3 @@ if (process.env.VERCEL !== '1') {
 
 // Vercel serverless function export
 export default app;
-

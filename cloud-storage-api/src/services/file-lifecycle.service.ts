@@ -1,7 +1,7 @@
-import { db } from '@/infrastructure/database/client';
-import { files, folders, storageObjects, shortcuts, filePermissions, folderPermissions } from '@/database/schema';
+import { db } from '../infrastructure/database/client';
+import { files, folders, storageObjects, shortcuts, filePermissions, folderPermissions } from '../database/schema';
 import { eq, and, sql, isNull, inArray } from 'drizzle-orm';
-import { deleteR2Object } from '@/infrastructure/storage/cloudflare-r2/delete';
+import { deleteR2Object } from '../infrastructure/storage/cloudflare-r2/delete';
 import { QuotaEngine } from './quota-engine';
 
 export class FileLifecycleService {

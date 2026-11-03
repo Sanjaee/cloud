@@ -1,10 +1,10 @@
 import { Elysia, t } from 'elysia';
-import { db } from '@/infrastructure/database/client';
-import { files, folders } from '@/database/schema';
+import { db } from '../../infrastructure/database/client';
+import { files, folders } from '../../database/schema';
 import { eq, and, isNotNull } from 'drizzle-orm';
-import { AppError } from '@/middleware/error-handler';
-import { authPlugin } from '@/middleware/authentication';
-import { FileLifecycleService } from '@/services/file-lifecycle.service';
+import { AppError } from '../../middleware/error-handler';
+import { authPlugin } from '../../middleware/authentication';
+import { FileLifecycleService } from '../../services/file-lifecycle.service';
 
 export const trashRoutes = new Elysia({ prefix: '/trash' })
   .use(authPlugin)

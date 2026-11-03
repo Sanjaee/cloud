@@ -1,6 +1,6 @@
 import { Elysia } from 'elysia';
 import { AppError } from './error-handler';
-import { env } from '@/config/env';
+import { env } from '../config/env';
 
 interface RateLimitRecord {
   count: number;

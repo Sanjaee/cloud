@@ -1,9 +1,9 @@
 import { Elysia, t } from 'elysia';
-import { db } from '@/infrastructure/database/client';
-import { sessions } from '@/database/schema';
+import { db } from '../../infrastructure/database/client';
+import { sessions } from '../../database/schema';
 import { eq, and, ne } from 'drizzle-orm';
-import { AppError } from '@/middleware/error-handler';
-import { authPlugin } from '@/middleware/authentication';
+import { AppError } from '../../middleware/error-handler';
+import { authPlugin } from '../../middleware/authentication';
 
 export const sessionRoutes = new Elysia({ prefix: '/sessions' })
   .use(authPlugin)

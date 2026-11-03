@@ -6,6 +6,7 @@ export const corsConfig = {
   origin: (request: Request): boolean => {
     const origin = request.headers.get('origin');
     if (!origin) return true; // allow mobile app / curl / same-origin
+    if (origin.endsWith('.vercel.app')) return true;
     return corsOrigins.includes(origin) || corsOrigins.includes('*');
   },
   credentials: true,

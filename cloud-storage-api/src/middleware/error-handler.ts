@@ -22,7 +22,7 @@ export const errorHandler = new Elysia({ name: 'middleware:error-handler' })
         success: false,
         error: {
           code: (error as any).code || 'ERROR',
-          message: error.message,
+          message: (error as any).message || 'Error occurred',
           details: (error as any).details,
         },
       };
@@ -35,7 +35,7 @@ export const errorHandler = new Elysia({ name: 'middleware:error-handler' })
         error: {
           code: 'VALIDATION_ERROR',
           message: 'The request payload is invalid',
-          details: error.all ? error.all : error.message,
+          details: (error as any).all ? (error as any).all : (error as any).message,
         },
       };
     }

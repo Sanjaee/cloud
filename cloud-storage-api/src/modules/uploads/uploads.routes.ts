@@ -1,20 +1,20 @@
 import { Elysia, t } from 'elysia';
-import { db } from '@/infrastructure/database/client';
-import { files, storageObjects, uploadSessions, multipartParts } from '@/database/schema';
+import { db } from '../../infrastructure/database/client';
+import { files, storageObjects, uploadSessions, multipartParts } from '../../database/schema';
 import { eq, and } from 'drizzle-orm';
-import { AppError } from '@/middleware/error-handler';
-import { authPlugin } from '@/middleware/authentication';
-import { QuotaEngine } from '@/services/quota-engine';
-import { PermissionEngine } from '@/services/permission-engine';
-import { createPresignedUploadUrl } from '@/infrastructure/storage/cloudflare-r2/upload';
-import { verifyR2Object } from '@/infrastructure/storage/cloudflare-r2/verify';
+import { AppError } from '../../middleware/error-handler';
+import { authPlugin } from '../../middleware/authentication';
+import { QuotaEngine } from '../../services/quota-engine';
+import { PermissionEngine } from '../../services/permission-engine';
+import { createPresignedUploadUrl } from '../../infrastructure/storage/cloudflare-r2/upload';
+import { verifyR2Object } from '../../infrastructure/storage/cloudflare-r2/verify';
 import {
   initiateMultipartUpload,
   getPresignedPartUrl,
   completeMultipartUpload,
   abortMultipartUpload,
-} from '@/infrastructure/storage/cloudflare-r2/multipart';
-import { APP_CONSTANTS } from '@/config/constants';
+} from '../../infrastructure/storage/cloudflare-r2/multipart';
+import { APP_CONSTANTS } from '../../config/constants';
 
 export const uploadRoutes = new Elysia({ prefix: '/uploads' })
   .use(authPlugin)

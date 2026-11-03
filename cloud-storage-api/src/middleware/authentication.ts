@@ -1,11 +1,11 @@
 import { Elysia } from 'elysia';
-import { db } from '@/infrastructure/database/client';
-import { users, sessions } from '@/database/schema';
+import { db } from '../infrastructure/database/client';
+import { users, sessions } from '../database/schema';
 import { eq, and, gt } from 'drizzle-orm';
 import { AppError } from './error-handler';
-import { APP_CONSTANTS } from '@/config/constants';
+import { APP_CONSTANTS } from '../config/constants';
 import jwt from '@elysiajs/jwt';
-import { env } from '@/config/env';
+import { env } from '../config/env';
 
 export async function hashToken(token: string): Promise<string> {
   const encoder = new TextEncoder();
@@ -34,7 +34,7 @@ export const authPlugin = new Elysia({ name: 'plugin:auth' })
   )
   .derive({ as: 'scoped' }, async ({ cookie, headers, jwt, request }) => {
     // 1. Try Web HttpOnly Session Cookie
-    let sessionCookie: string | undefined = cookie[APP_CONSTANTS.SESSION_COOKIE_NAME]?.value;
+    let sessionCookie: string | undefined = (cookie[APP_CONSTANTS.SESSION_COOKIE_NAME]?.value as string) || undefined;
     if (!sessionCookie) {
       const cookieHeader = request.headers.get('cookie') || headers['cookie'];
       if (cookieHeader) {

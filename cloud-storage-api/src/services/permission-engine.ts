@@ -1,5 +1,5 @@
-import { db } from '@/infrastructure/database/client';
-import { files, folders, filePermissions, folderPermissions, users } from '@/database/schema';
+import { db } from '../infrastructure/database/client';
+import { files, folders, filePermissions, folderPermissions, users } from '../database/schema';
 import { eq, and, isNull, or, gt } from 'drizzle-orm';
 
 export type PermissionLevel = 'viewer' | 'commenter' | 'editor' | 'owner';
@@ -97,7 +97,7 @@ export class PermissionEngine {
       if (visited.has(currentFolderId)) break; // cycle protection
       visited.add(currentFolderId);
 
-      const folder = await db.query.folders.findFirst({
+      const folder: any = await db.query.folders.findFirst({
         where: and(eq(folders.id, currentFolderId), isNull(folders.deletedAt)),
       });
 

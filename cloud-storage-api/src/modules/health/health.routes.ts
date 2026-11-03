@@ -1,6 +1,6 @@
 import { Elysia } from 'elysia';
-import { db, sql } from '@/infrastructure/database/client';
-import { r2Client, BUCKET_NAME } from '@/infrastructure/storage/cloudflare-r2/client';
+import { db, sql } from '../../infrastructure/database/client';
+import { r2Client, BUCKET_NAME } from '../../infrastructure/storage/cloudflare-r2/client';
 import { HeadBucketCommand } from '@aws-sdk/client-s3';
 
 export const healthRoutes = new Elysia({ prefix: '/health' })

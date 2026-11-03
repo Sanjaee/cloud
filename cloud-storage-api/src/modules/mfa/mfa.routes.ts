@@ -1,9 +1,9 @@
 import { Elysia, t } from 'elysia';
-import { db } from '@/infrastructure/database/client';
-import { mfaCredentials, users, securityEvents } from '@/database/schema';
+import { db } from '../../infrastructure/database/client';
+import { mfaCredentials, users, securityEvents } from '../../database/schema';
 import { eq } from 'drizzle-orm';
-import { AppError } from '@/middleware/error-handler';
-import { authPlugin, hashToken } from '@/middleware/authentication';
+import { AppError } from '../../middleware/error-handler';
+import { authPlugin, hashToken } from '../../middleware/authentication';
 import { authenticator } from 'otplib';
 import QRCode from 'qrcode';
 

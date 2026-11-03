@@ -1,5 +1,5 @@
-import { db } from '@/infrastructure/database/client';
-import { users, storageObjects, files } from '@/database/schema';
+import { db } from '../infrastructure/database/client';
+import { users, storageObjects, files } from '../database/schema';
 import { eq, and, sql } from 'drizzle-orm';
 
 export interface QuotaCheckResult {

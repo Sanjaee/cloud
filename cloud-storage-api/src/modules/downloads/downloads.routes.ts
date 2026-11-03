@@ -1,11 +1,11 @@
 import { Elysia, t } from 'elysia';
-import { db } from '@/infrastructure/database/client';
-import { files, storageObjects } from '@/database/schema';
+import { db } from '../../infrastructure/database/client';
+import { files, storageObjects } from '../../database/schema';
 import { eq } from 'drizzle-orm';
-import { AppError } from '@/middleware/error-handler';
-import { authPlugin } from '@/middleware/authentication';
-import { PermissionEngine } from '@/services/permission-engine';
-import { createPresignedDownloadUrl } from '@/infrastructure/storage/cloudflare-r2/download';
+import { AppError } from '../../middleware/error-handler';
+import { authPlugin } from '../../middleware/authentication';
+import { PermissionEngine } from '../../services/permission-engine';
+import { createPresignedDownloadUrl } from '../../infrastructure/storage/cloudflare-r2/download';
 
 export const downloadRoutes = new Elysia({ prefix: '/downloads' })
   .use(authPlugin)

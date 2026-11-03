@@ -1,30 +1,30 @@
 import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
 import { swagger } from '@elysiajs/swagger';
-import { corsConfig } from '@/config/cors';
-import { requestId } from '@/middleware/request-id';
-import { errorHandler } from '@/middleware/error-handler';
-import { createRateLimiter } from '@/middleware/rate-limit';
-import { authPlugin } from '@/middleware/authentication';
+import { corsConfig } from './config/cors';
+import { requestId } from './middleware/request-id';
+import { errorHandler } from './middleware/error-handler';
+import { createRateLimiter } from './middleware/rate-limit';
+import { authPlugin } from './middleware/authentication';
 
 // Modules
-import { authRoutes } from '@/modules/auth/auth.routes';
-import { userRoutes } from '@/modules/users/users.routes';
-import { sessionRoutes } from '@/modules/sessions/sessions.routes';
-import { securityRoutes } from '@/modules/security/security.routes';
-import { mfaRoutes } from '@/modules/mfa/mfa.routes';
-import { fileRoutes } from '@/modules/files/files.routes';
-import { folderRoutes } from '@/modules/folders/folders.routes';
-import { uploadRoutes } from '@/modules/uploads/uploads.routes';
-import { downloadRoutes } from '@/modules/downloads/downloads.routes';
-import { sharingRoutes } from '@/modules/sharing/sharing.routes';
-import { shortcutRoutes } from '@/modules/shortcuts/shortcuts.routes';
-import { publicLinkRoutes } from '@/modules/public-links/public-links.routes';
-import { trashRoutes } from '@/modules/trash/trash.routes';
-import { quotaRoutes } from '@/modules/quotas/quotas.routes';
-import { notificationRoutes } from '@/modules/notifications/notifications.routes';
-import { auditRoutes } from '@/modules/audit/audit.routes';
-import { healthRoutes } from '@/modules/health/health.routes';
+import { authRoutes } from './modules/auth/auth.routes';
+import { userRoutes } from './modules/users/users.routes';
+import { sessionRoutes } from './modules/sessions/sessions.routes';
+import { securityRoutes } from './modules/security/security.routes';
+import { mfaRoutes } from './modules/mfa/mfa.routes';
+import { fileRoutes } from './modules/files/files.routes';
+import { folderRoutes } from './modules/folders/folders.routes';
+import { uploadRoutes } from './modules/uploads/uploads.routes';
+import { downloadRoutes } from './modules/downloads/downloads.routes';
+import { sharingRoutes } from './modules/sharing/sharing.routes';
+import { shortcutRoutes } from './modules/shortcuts/shortcuts.routes';
+import { publicLinkRoutes } from './modules/public-links/public-links.routes';
+import { trashRoutes } from './modules/trash/trash.routes';
+import { quotaRoutes } from './modules/quotas/quotas.routes';
+import { notificationRoutes } from './modules/notifications/notifications.routes';
+import { auditRoutes } from './modules/audit/audit.routes';
+import { healthRoutes } from './modules/health/health.routes';
 
 export const app = new Elysia()
   // Global Middlewares
@@ -86,3 +86,4 @@ export const app = new Elysia()
   );
 
 export type App = typeof app;
+export default app;
