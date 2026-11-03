@@ -35,6 +35,9 @@ export interface FileItem {
     email: string;
     username: string;
   };
+  folderName?: string;
+  folderPath?: string;
+  breadcrumbs?: BreadcrumbItem[];
 }
 
 export interface FolderItem {
@@ -49,6 +52,9 @@ export interface FolderItem {
   sharedAt?: string;
   createdAt: string;
   updatedAt: string;
+  parentPath?: string;
+  folderPath?: string;
+  breadcrumbs?: BreadcrumbItem[];
 }
 
 export interface BreadcrumbItem {

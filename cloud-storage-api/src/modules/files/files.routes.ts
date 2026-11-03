@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia';
 import { db } from '../../infrastructure/database/client';
 import { files, folders, users, storageObjects } from '../../database/schema';
-import { eq, and, isNull, sql } from 'drizzle-orm';
+import { eq, and, isNull, ilike, sql } from 'drizzle-orm';
 import { AppError } from '../../middleware/error-handler';
 import { authPlugin } from '../../middleware/authentication';
 import { PermissionEngine } from '../../services/permission-engine';
@@ -99,6 +99,153 @@ export const fileRoutes = new Elysia({ prefix: '/files' })
     {
       query: t.Object({ folderId: t.Optional(t.String({ format: 'uuid' })) }),
       detail: { tags: ['Files'], summary: 'List verified ready files in a folder or root' },
+    }
+  )
+
+  // 1b. Search files and folders scoped to current user with full path location
+  .get(
+    '/search',
+    async ({ currentUser, query }: any) => {
+      if (!currentUser) throw new AppError(401, 'UNAUTHORIZED', 'Authentication required');
+
+      const rawQ = query.q || '';
+      const cleanQ = String(rawQ).trim();
+      if (!cleanQ) {
+        return {
+          success: true,
+          data: {
+            query: '',
+            files: [],
+            folders: [],
+          },
+        };
+      }
+
+      // 1. Fetch user's active folders to build breadcrumb paths in memory
+      const userFolders = await db.query.folders.findMany({
+        where: and(eq(folders.ownerId, currentUser.id), isNull(folders.deletedAt)),
+      });
+
+      const folderMap = new Map<string, any>();
+      for (const fol of userFolders) {
+        folderMap.set(fol.id, fol);
+      }
+
+      // Fast in-memory path resolver
+      function resolvePathInfo(folderId: string | null) {
+        if (!folderId || !folderMap.has(folderId)) {
+          return {
+            folderId: null,
+            folderName: 'My Drive',
+            folderPath: 'My Drive',
+            breadcrumbs: [{ id: null, name: 'My Drive' }],
+          };
+        }
+
+        const bcs: { id: string | null; name: string }[] = [];
+        let currId: string | null = folderId;
+        const visited = new Set<string>();
+
+        while (currId && folderMap.has(currId) && !visited.has(currId)) {
+          visited.add(currId);
+          const currItem: any = folderMap.get(currId);
+          if (!currItem) break;
+          bcs.unshift({ id: currItem.id, name: currItem.name });
+          currId = currItem.parentId;
+        }
+
+        bcs.unshift({ id: null, name: 'My Drive' });
+
+        return {
+          folderId,
+          folderName: bcs[bcs.length - 1].name,
+          folderPath: bcs.map((b) => b.name).join(' / '),
+          breadcrumbs: bcs,
+        };
+      }
+
+      // 2. Search matching files owned by user
+      const matchingFiles = await db
+        .select({
+          id: files.id,
+          ownerId: files.ownerId,
+          folderId: files.folderId,
+          storageObjectId: files.storageObjectId,
+          name: files.name,
+          originalName: files.originalName,
+          mimeType: files.mimeType,
+          size: files.size,
+          isStarred: files.isStarred,
+          createdAt: files.createdAt,
+          updatedAt: files.updatedAt,
+        })
+        .from(files)
+        .innerJoin(storageObjects, eq(files.storageObjectId, storageObjects.id))
+        .where(
+          and(
+            eq(files.ownerId, currentUser.id),
+            isNull(files.deletedAt),
+            eq(storageObjects.status, 'ready'),
+            ilike(files.name, `%${cleanQ}%`)
+          )
+        )
+        .orderBy(files.name)
+        .limit(Number(query.limit) || 50);
+
+      // 3. Search matching folders owned by user
+      const matchingFolders = await db.query.folders.findMany({
+        where: and(
+          eq(folders.ownerId, currentUser.id),
+          isNull(folders.deletedAt),
+          ilike(folders.name, `%${cleanQ}%`)
+        ),
+        limit: Number(query.limit) || 30,
+      });
+
+      // 4. Enrich files with folder path & breadcrumbs
+      const enrichedFiles = matchingFiles.map((file) => {
+        const pathInfo = resolvePathInfo(file.folderId);
+        return {
+          ...file,
+          folderId: pathInfo.folderId,
+          folderName: pathInfo.folderName,
+          folderPath: pathInfo.folderPath,
+          breadcrumbs: pathInfo.breadcrumbs,
+        };
+      });
+
+      // 5. Enrich folders with parent path info
+      const enrichedFolders = matchingFolders.map((folder) => {
+        const pathInfo = resolvePathInfo(folder.parentId);
+        const fullBreadcrumbs = [...pathInfo.breadcrumbs, { id: folder.id, name: folder.name }];
+        return {
+          id: folder.id,
+          name: folder.name,
+          parentId: folder.parentId,
+          parentPath: pathInfo.folderPath,
+          folderPath: fullBreadcrumbs.map((b) => b.name).join(' / '),
+          breadcrumbs: fullBreadcrumbs,
+          isStarred: folder.isStarred,
+          createdAt: folder.createdAt,
+          updatedAt: folder.updatedAt,
+        };
+      });
+
+      return {
+        success: true,
+        data: {
+          query: cleanQ,
+          files: enrichedFiles,
+          folders: enrichedFolders,
+        },
+      };
+    },
+    {
+      query: t.Object({
+        q: t.String(),
+        limit: t.Optional(t.String()),
+      }),
+      detail: { tags: ['Files'], summary: 'Search files and folders scoped to current user with full path location' },
     }
   )
 

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { authStore } from '$lib/stores/auth.store';
   import { selectionStore } from '$lib/stores/selection.store';
+  import { formatBytes } from '$lib/utils/file-size';
   import {
     Cloud,
     Search,
@@ -10,10 +11,14 @@
     LogOut,
     Shield,
     CheckCheck,
+    Folder,
+    FileText,
+    ArrowUpRight,
+    X,
   } from 'lucide-svelte';
   import { apiRequest } from '$lib/api/client';
   import { onMount } from 'svelte';
-  import type { NotificationItem } from '$lib/api/types';
+  import type { NotificationItem, FileItem, FolderItem } from '$lib/api/types';
 
   let user = $derived(authStore.getState().user);
   let viewMode = $state('grid');
@@ -23,9 +28,61 @@
   let unreadCount = $state(0);
   let searchQuery = $state('');
 
+  let searchResults = $state<{ files: FileItem[]; folders: FolderItem[] }>({ files: [], folders: [] });
+  let isSearching = $state(false);
+  let searchDropdownOpen = $state(false);
+  let searchDebounceTimer: any = null;
+
   selectionStore.subscribe((s) => {
     viewMode = s.viewMode;
   });
+
+  function handleSearchInput(e: Event) {
+    clearTimeout(searchDebounceTimer);
+    const q = searchQuery.trim();
+    if (!q) {
+      searchResults = { files: [], folders: [] };
+      searchDropdownOpen = false;
+      return;
+    }
+
+    searchDebounceTimer = setTimeout(async () => {
+      isSearching = true;
+      try {
+        const res = await apiRequest(`/files/search?q=${encodeURIComponent(q)}&limit=6`);
+        searchResults = {
+          files: res.files || [],
+          folders: res.folders || [],
+        };
+        searchDropdownOpen = true;
+      } catch {
+        searchResults = { files: [], folders: [] };
+      } finally {
+        isSearching = false;
+      }
+    }, 250);
+  }
+
+  function handleSearchKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Enter') {
+      const q = searchQuery.trim();
+      if (q) {
+        searchDropdownOpen = false;
+        window.location.href = `/search?q=${encodeURIComponent(q)}`;
+      }
+    } else if (e.key === 'Escape') {
+      searchDropdownOpen = false;
+    }
+  }
+
+  function goToFolder(folderId: string | null) {
+    searchDropdownOpen = false;
+    if (folderId) {
+      window.location.href = `/drive?folder=${folderId}`;
+    } else {
+      window.location.href = '/drive';
+    }
+  }
 
   async function loadNotifications() {
     try {
@@ -43,8 +100,16 @@
     } catch {}
   }
 
+  function onGlobalClick(e: MouseEvent) {
+    const target = e.target as HTMLElement;
+    if (!target.closest('.search-container')) {
+      searchDropdownOpen = false;
+    }
+  }
+
   onMount(() => {
     loadNotifications();
+    window.addEventListener('click', onGlobalClick);
   });
 </script>
 
@@ -59,14 +124,115 @@
     </a>
 
     <!-- Search Bar -->
-    <div class="relative w-full">
+    <div class="relative w-full search-container">
       <Search class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
       <input
         type="text"
         bind:value={searchQuery}
-        placeholder="Search files and folders..."
-        class="w-full pl-10 pr-4 py-2 bg-slate-100/80 dark:bg-slate-800/60 border border-transparent focus:border-blue-500/50 focus:bg-white dark:focus:bg-slate-900 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900 dark:text-white transition"
+        oninput={handleSearchInput}
+        onkeydown={handleSearchKeyDown}
+        onfocus={() => { if (searchQuery.trim()) searchDropdownOpen = true; }}
+        placeholder="Cari file dan folder..."
+        class="w-full pl-10 pr-9 py-2 bg-slate-100/80 dark:bg-slate-800/60 border border-transparent focus:border-blue-500/50 focus:bg-white dark:focus:bg-slate-900 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900 dark:text-white transition"
       />
+      {#if searchQuery}
+        <button
+          onclick={() => { searchQuery = ''; searchDropdownOpen = false; }}
+          class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition p-0.5 cursor-pointer"
+        >
+          <X class="w-3.5 h-3.5" />
+        </button>
+      {/if}
+
+      <!-- Live Search Results Dropdown -->
+      {#if searchDropdownOpen && searchQuery.trim()}
+        <div class="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100">
+          {#if isSearching}
+            <div class="p-4 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+              <div class="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+              <span>Mencari di dalam semua folder...</span>
+            </div>
+          {:else if searchResults.files.length === 0 && searchResults.folders.length === 0}
+            <div class="p-4 text-center text-xs text-slate-400">
+              Tidak ada file atau folder yang cocok dengan "{searchQuery}"
+            </div>
+          {:else}
+            <!-- Matching Folders -->
+            {#if searchResults.folders.length > 0}
+              <div class="p-2">
+                <span class="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Folders</span>
+                {#each searchResults.folders as fol}
+                  <button
+                    onclick={() => goToFolder(fol.id)}
+                    class="w-full flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition text-left cursor-pointer group"
+                  >
+                    <div class="flex items-center gap-2.5 min-w-0">
+                      <Folder class="w-4 h-4 text-amber-500 shrink-0 fill-amber-500/20" />
+                      <div class="truncate">
+                        <p class="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">{fol.name}</p>
+                        <p class="text-[10px] text-slate-400 truncate">Lokasi: {fol.parentPath || 'My Drive'}</p>
+                      </div>
+                    </div>
+                    <ArrowUpRight class="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500 shrink-0" />
+                  </button>
+                {/each}
+              </div>
+            {/if}
+
+            <!-- Matching Files -->
+            {#if searchResults.files.length > 0}
+              <div class="p-2">
+                <span class="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Files</span>
+                {#each searchResults.files as f}
+                  <div
+                    class="w-full flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition text-left group"
+                  >
+                    <button
+                      onclick={() => {
+                        searchDropdownOpen = false;
+                        selectionStore.getState().setPreviewFile(f);
+                      }}
+                      class="flex items-center gap-2.5 min-w-0 flex-1 text-left cursor-pointer"
+                    >
+                      <FileText class="w-4 h-4 text-blue-500 shrink-0" />
+                      <div class="truncate flex-1">
+                        <p class="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate group-hover:text-blue-600 transition">{f.name}</p>
+                        <p class="text-[10px] text-slate-400 truncate flex items-center gap-1">
+                          <span class="font-medium text-slate-500 dark:text-slate-400">📁 {f.folderPath || 'My Drive'}</span>
+                          <span>•</span>
+                          <span>{formatBytes(f.size)}</span>
+                        </p>
+                      </div>
+                    </button>
+
+                    <button
+                      onclick={(e) => {
+                        e.stopPropagation();
+                        goToFolder(f.folderId);
+                      }}
+                      class="shrink-0 text-[10px] font-semibold px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-950 hover:text-blue-600 transition cursor-pointer ml-2"
+                      title="Buka lokasi folder di My Drive"
+                    >
+                      Buka Folder
+                    </button>
+                  </div>
+                {/each}
+              </div>
+            {/if}
+
+            <!-- View All Footer -->
+            <button
+              onclick={() => {
+                searchDropdownOpen = false;
+                window.location.href = `/search?q=${encodeURIComponent(searchQuery)}`;
+              }}
+              class="w-full py-2.5 px-4 bg-slate-50 dark:bg-slate-800/40 text-center text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+            >
+              Lihat semua hasil untuk "{searchQuery}" →
+            </button>
+          {/if}
+        </div>
+      {/if}
     </div>
   </div>
 
