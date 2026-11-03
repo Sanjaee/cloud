@@ -381,9 +381,28 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
           };
         }
 
-        const isValidTotp = authenticator.check(mfaCode, mfa.secret);
+        authenticator.options = { window: [2, 2] };
+        const cleanMfaCode = String(mfaCode).replace(/[\s-]+/g, '').trim();
+        let isValidTotp = authenticator.check(cleanMfaCode, mfa.secret.replace(/\s+/g, ''));
+
+        // If TOTP check failed, check if it's a valid backup recovery code
+        if (!isValidTotp && mfa.backupCodesHash && mfa.backupCodesHash.length > 0) {
+          const hashedCode = await hashToken(cleanMfaCode.toUpperCase());
+          const backupIdx = (mfa.backupCodesHash as string[]).indexOf(hashedCode);
+          if (backupIdx !== -1) {
+            isValidTotp = true;
+            // Remove the used single-use backup code
+            const updatedBackupCodes = [...(mfa.backupCodesHash as string[])];
+            updatedBackupCodes.splice(backupIdx, 1);
+            await db
+              .update(mfaCredentials)
+              .set({ backupCodesHash: updatedBackupCodes, updatedAt: new Date() })
+              .where(eq(mfaCredentials.id, mfa.id));
+          }
+        }
+
         if (!isValidTotp) {
-          throw new AppError(401, 'INVALID_MFA_CODE', 'Invalid or expired TOTP code');
+          throw new AppError(401, 'INVALID_MFA_CODE', 'Kode TOTP atau Backup Code salah atau sudah kedaluwarsa');
         }
       }
 

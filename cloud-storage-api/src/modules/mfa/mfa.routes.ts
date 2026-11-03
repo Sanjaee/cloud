@@ -7,6 +7,9 @@ import { authPlugin, hashToken } from '../../middleware/authentication';
 import { authenticator } from 'otplib';
 import QRCode from 'qrcode';
 
+// Configure TOTP tolerance: window [2, 2] allows +/- 2 time steps (60s drift tolerance)
+authenticator.options = { window: [2, 2] };
+
 export const mfaRoutes = new Elysia({ prefix: '/mfa' })
   .use(authPlugin)
   // 1. Get MFA Status
@@ -31,13 +34,38 @@ export const mfaRoutes = new Elysia({ prefix: '/mfa' })
     }
   )
 
-  // 2. Setup MFA: Generate TOTP secret & QR code
+  // 2. Setup MFA: Generate or retrieve pending TOTP secret & QR code
   .post(
     '/setup',
-    async ({ currentUser }: any) => {
+    async ({ currentUser, body }: any) => {
       if (!currentUser) throw new AppError(401, 'UNAUTHORIZED', 'Authentication required');
 
-      const secret = authenticator.generateSecret();
+      const existing = await db.query.mfaCredentials.findFirst({
+        where: eq(mfaCredentials.userId, currentUser.id),
+      });
+
+      let secret: string;
+
+      // If user already has an unverified pending secret and didn't explicitly ask to regenerate,
+      // reuse it so they don't get mismatched tokens if they reload or re-open the wizard
+      if (existing && !existing.isEnabled && existing.secret && !body?.regenerate) {
+        secret = existing.secret;
+      } else {
+        secret = authenticator.generateSecret();
+        if (existing) {
+          await db
+            .update(mfaCredentials)
+            .set({ secret, isEnabled: false, updatedAt: new Date() })
+            .where(eq(mfaCredentials.userId, currentUser.id));
+        } else {
+          await db.insert(mfaCredentials).values({
+            userId: currentUser.id,
+            secret,
+            isEnabled: false,
+          });
+        }
+      }
+
       const otpauthUrl = authenticator.keyuri(
         currentUser.email,
         'REA Cloud Storage',
@@ -45,24 +73,6 @@ export const mfaRoutes = new Elysia({ prefix: '/mfa' })
       );
 
       const qrCodeDataUrl = await QRCode.toDataURL(otpauthUrl);
-
-      // Save secret (not yet enabled until verified)
-      const existing = await db.query.mfaCredentials.findFirst({
-        where: eq(mfaCredentials.userId, currentUser.id),
-      });
-
-      if (existing) {
-        await db
-          .update(mfaCredentials)
-          .set({ secret, isEnabled: false, updatedAt: new Date() })
-          .where(eq(mfaCredentials.userId, currentUser.id));
-      } else {
-        await db.insert(mfaCredentials).values({
-          userId: currentUser.id,
-          secret,
-          isEnabled: false,
-        });
-      }
 
       return {
         success: true,
@@ -74,6 +84,11 @@ export const mfaRoutes = new Elysia({ prefix: '/mfa' })
       };
     },
     {
+      body: t.Optional(
+        t.Object({
+          regenerate: t.Optional(t.Boolean()),
+        })
+      ),
       detail: { tags: ['MFA'], summary: 'Generate TOTP secret and QR code for setup' },
     }
   )
@@ -84,26 +99,39 @@ export const mfaRoutes = new Elysia({ prefix: '/mfa' })
     async ({ currentUser, body, request }: any) => {
       if (!currentUser) throw new AppError(401, 'UNAUTHORIZED', 'Authentication required');
 
-      const { code } = body;
+      const rawCode = body?.code || '';
+      const cleanCode = String(rawCode).replace(/[\s-]+/g, '').trim();
+
+      if (!/^\d{6}$/.test(cleanCode)) {
+        throw new AppError(400, 'INVALID_CODE', 'Kode verifikasi TOTP harus terdiri dari 6 digit angka');
+      }
+
       const mfa = await db.query.mfaCredentials.findFirst({
         where: eq(mfaCredentials.userId, currentUser.id),
       });
 
       if (!mfa || !mfa.secret) {
-        throw new AppError(400, 'MFA_NOT_INITIALIZED', 'Please run MFA setup first');
+        throw new AppError(400, 'MFA_NOT_INITIALIZED', 'Silakan klik Setup Two-Factor Authentication terlebih dahulu');
       }
 
-      const isValid = authenticator.check(code, mfa.secret);
+      authenticator.options = { window: [2, 2] };
+      const cleanSecret = mfa.secret.replace(/\s+/g, '');
+      const isValid = authenticator.check(cleanCode, cleanSecret);
+
       if (!isValid) {
-        throw new AppError(400, 'INVALID_CODE', 'The 6-digit TOTP code is incorrect');
+        throw new AppError(
+          400,
+          'INVALID_CODE',
+          'Kode TOTP salah atau sudah kedaluwarsa. Pastikan jam/waktu pada ponsel Anda sinkron otomatis.'
+        );
       }
 
-      // Generate 10 backup codes
+      // Generate 10 backup recovery codes (formatted e.g. ABC1-XYZ2)
       const rawBackupCodes: string[] = [];
       const hashedBackupCodes: string[] = [];
 
       for (let i = 0; i < 10; i++) {
-        const rawCode = crypto.randomUUID().substring(0, 8).toUpperCase();
+        const rawCode = `${crypto.randomUUID().substring(0, 4)}-${crypto.randomUUID().substring(4, 8)}`.toUpperCase();
         rawBackupCodes.push(rawCode);
         hashedBackupCodes.push(await hashToken(rawCode));
       }
@@ -126,15 +154,15 @@ export const mfaRoutes = new Elysia({ prefix: '/mfa' })
 
       return {
         success: true,
-        message: 'MFA successfully enabled',
+        message: 'Two-Factor Authentication (TOTP) berhasil diaktifkan!',
         data: {
-          backupCodes: rawBackupCodes, // Presented once to user
+          backupCodes: rawBackupCodes,
         },
       };
     },
     {
       body: t.Object({
-        code: t.String({ minLength: 6, maxLength: 6 }),
+        code: t.String(),
       }),
       detail: { tags: ['MFA'], summary: 'Confirm TOTP code and enable MFA' },
     }
@@ -147,6 +175,7 @@ export const mfaRoutes = new Elysia({ prefix: '/mfa' })
       if (!currentUser) throw new AppError(401, 'UNAUTHORIZED', 'Authentication required');
 
       const { password, code } = body;
+      const cleanCode = code ? String(code).replace(/[\s-]+/g, '').trim() : '';
 
       const user = await db.query.users.findFirst({
         where: eq(users.id, currentUser.id),
@@ -154,10 +183,14 @@ export const mfaRoutes = new Elysia({ prefix: '/mfa' })
 
       if (!user) throw new AppError(404, 'NOT_FOUND', 'User not found');
 
+      // If user has local password, verify password
       if (user.passwordHash) {
+        if (!password) {
+          throw new AppError(400, 'PASSWORD_REQUIRED', 'Password diperlukan untuk menonaktifkan MFA');
+        }
         const isPassValid = await Bun.password.verify(password, user.passwordHash);
         if (!isPassValid) {
-          throw new AppError(401, 'INVALID_PASSWORD', 'Password is incorrect');
+          throw new AppError(401, 'INVALID_PASSWORD', 'Password tidak sesuai');
         }
       }
 
@@ -166,9 +199,17 @@ export const mfaRoutes = new Elysia({ prefix: '/mfa' })
       });
 
       if (mfa && mfa.isEnabled) {
-        const isValid = authenticator.check(code, mfa.secret);
-        if (!isValid) {
-          throw new AppError(400, 'INVALID_CODE', 'TOTP code is incorrect');
+        if (cleanCode) {
+          authenticator.options = { window: [2, 2] };
+          const isValid = authenticator.check(cleanCode, mfa.secret.replace(/\s+/g, ''));
+          if (!isValid) {
+            // Also check if it matches any hashed backup code
+            const hashedCode = await hashToken(cleanCode.toUpperCase());
+            const backupIndex = (mfa.backupCodesHash || []).indexOf(hashedCode);
+            if (backupIndex === -1) {
+              throw new AppError(400, 'INVALID_CODE', 'Kode TOTP atau Backup Code salah');
+            }
+          }
         }
 
         await db
@@ -186,13 +227,13 @@ export const mfaRoutes = new Elysia({ prefix: '/mfa' })
 
       return {
         success: true,
-        message: 'MFA has been disabled',
+        message: 'Two-Factor Authentication berhasil dinonaktifkan',
       };
     },
     {
       body: t.Object({
-        password: t.String(),
-        code: t.String({ minLength: 6, maxLength: 6 }),
+        password: t.Optional(t.String()),
+        code: t.Optional(t.String()),
       }),
       detail: { tags: ['MFA'], summary: 'Disable MFA with password and TOTP confirmation' },
     }

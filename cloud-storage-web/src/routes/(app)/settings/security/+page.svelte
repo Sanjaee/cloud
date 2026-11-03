@@ -13,6 +13,11 @@
     Trash2,
     LogOut,
     CheckCircle,
+    X,
+    Copy,
+    RefreshCw,
+    Download,
+    Eye,
   } from 'lucide-svelte';
   import { onMount } from 'svelte';
   import type { ActiveSession, SecurityEvent } from '$lib/api/types';
@@ -30,12 +35,23 @@
   let pwdError = $state('');
   let isUpdatingPwd = $state(false);
 
-  // MFA setup state
+  // MFA setup & verification state
   let mfaSetupData = $state<{ secret: string; qrCodeDataUrl: string } | null>(null);
   let totpCode = $state('');
   let backupCodes = $state<string[]>([]);
   let mfaMessage = $state('');
   let mfaError = $state('');
+  let isSettingUpMfa = $state(false);
+  let isConfirmingMfa = $state(false);
+  let showBackupCodesModal = $state(false);
+  let codesCopied = $state(false);
+
+  // Disable MFA state
+  let showDisableModal = $state(false);
+  let disablePassword = $state('');
+  let disableTotpCode = $state('');
+  let isDisablingMfa = $state(false);
+  let disableError = $state('');
 
   async function loadSecurityData() {
     isLoading = true;
@@ -100,36 +116,92 @@
     }
   }
 
-  async function startMfaSetup() {
+  async function startMfaSetup(regenerate = false) {
     mfaError = '';
     mfaMessage = '';
+    isSettingUpMfa = true;
     try {
-      const res = await apiRequest('/mfa/setup', { method: 'POST' });
+      const res = await apiRequest('/mfa/setup', {
+        method: 'POST',
+        body: JSON.stringify({ regenerate }),
+      });
       mfaSetupData = res;
+      totpCode = '';
     } catch (err: any) {
-      mfaError = err.message;
+      mfaError = err.message || 'Gagal menyiapkan MFA';
+    } finally {
+      isSettingUpMfa = false;
     }
   }
 
   async function confirmMfa() {
-    if (!totpCode || totpCode.length !== 6) {
-      mfaError = 'Please enter a valid 6-digit TOTP code';
+    const cleanCode = totpCode.replace(/[\s-]+/g, '').trim();
+    if (!cleanCode || cleanCode.length !== 6) {
+      mfaError = 'Harap masukkan 6 digit kode angka dari aplikasi Authenticator';
       return;
     }
 
     mfaError = '';
+    isConfirmingMfa = true;
     try {
       const res = await apiRequest('/mfa/enable', {
         method: 'POST',
-        body: JSON.stringify({ code: totpCode }),
+        body: JSON.stringify({ code: cleanCode }),
       });
       backupCodes = res.backupCodes || [];
       mfaEnabled = true;
       mfaSetupData = null;
-      mfaMessage = 'MFA successfully enabled!';
+      totpCode = '';
+      mfaMessage = 'Two-Factor Authentication (TOTP) berhasil diaktifkan!';
+      showBackupCodesModal = true;
     } catch (err: any) {
-      mfaError = err.message || 'Invalid verification code';
+      mfaError = err.message || 'Kode verifikasi tidak valid atau kedaluwarsa';
+    } finally {
+      isConfirmingMfa = false;
     }
+  }
+
+  async function handleDisableMfa() {
+    isDisablingMfa = true;
+    disableError = '';
+    try {
+      await apiRequest('/mfa/disable', {
+        method: 'POST',
+        body: JSON.stringify({
+          password: disablePassword || undefined,
+          code: disableTotpCode || undefined,
+        }),
+      });
+      mfaEnabled = false;
+      showDisableModal = false;
+      disablePassword = '';
+      disableTotpCode = '';
+      mfaMessage = 'Two-Factor Authentication berhasil dinonaktifkan';
+      backupCodes = [];
+    } catch (err: any) {
+      disableError = err.message || 'Gagal menonaktifkan MFA';
+    } finally {
+      isDisablingMfa = false;
+    }
+  }
+
+  function copyBackupCodes() {
+    if (backupCodes.length === 0) return;
+    navigator.clipboard.writeText(backupCodes.join('\n'));
+    codesCopied = true;
+    setTimeout(() => (codesCopied = false), 2500);
+  }
+
+  function downloadBackupCodes() {
+    if (backupCodes.length === 0) return;
+    const content = `REA CLOUD STORAGE - 2FA BACKUP CODES\nGenerated: ${new Date().toISOString()}\n\nEach code can be used once to access your account if you lose your authenticator app:\n\n${backupCodes.join('\n')}\n\nKeep these codes safe and private!`;
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'rea-cloud-backup-codes.txt';
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   onMount(() => {
@@ -290,7 +362,7 @@
     </div>
 
     <!-- MFA / Two-Factor Authentication Section -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xs">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xs relative">
       <div class="flex items-center justify-between mb-4">
         <div>
           <h3 class="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
@@ -307,60 +379,193 @@
         </span>
       </div>
 
+      <!-- Popup Alert Messages -->
       {#if mfaMessage}
-        <div class="mb-4 p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 rounded-xl text-xs text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
-          <CheckCircle class="w-4 h-4 shrink-0" />
-          <span>{mfaMessage}</span>
+        <div class="mb-4 p-3.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 rounded-2xl text-xs text-emerald-700 dark:text-emerald-300 flex items-center justify-between gap-2 shadow-xs animate-in fade-in duration-200">
+          <div class="flex items-center gap-2.5">
+            <CheckCircle class="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            <span class="font-medium">{mfaMessage}</span>
+          </div>
+          <button onclick={() => (mfaMessage = '')} class="p-1 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-lg text-emerald-600 cursor-pointer">
+            <X class="w-3.5 h-3.5" />
+          </button>
         </div>
       {/if}
 
-      {#if !mfaEnabled && !mfaSetupData}
+      {#if mfaError && !mfaSetupData}
+        <div class="mb-4 p-3.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-2xl text-xs text-red-700 dark:text-red-300 flex items-center justify-between gap-2 shadow-xs animate-in fade-in duration-200">
+          <div class="flex items-center gap-2.5">
+            <AlertCircle class="w-4 h-4 shrink-0 text-red-600 dark:text-red-400" />
+            <span class="font-medium">{mfaError}</span>
+          </div>
+          <button onclick={() => (mfaError = '')} class="p-1 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg text-red-600 cursor-pointer">
+            <X class="w-3.5 h-3.5" />
+          </button>
+        </div>
+      {/if}
+
+      <!-- MFA Enabled view -->
+      {#if mfaEnabled}
+        <div class="p-5 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-900/60 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <Shield class="w-5 h-5" />
+            </div>
+            <div>
+              <h4 class="text-xs font-bold text-slate-900 dark:text-white">Akun Anda Dilindungi 2FA</h4>
+              <p class="text-[11px] text-slate-500 mt-0.5">Kode autentikasi dari ponsel Anda aktif untuk setiap sesi login.</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            {#if backupCodes.length > 0}
+              <button
+                type="button"
+                onclick={() => (showBackupCodesModal = true)}
+                class="px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold transition cursor-pointer"
+              >
+                Lihat Backup Codes
+              </button>
+            {/if}
+            <button
+              type="button"
+              onclick={() => {
+                showDisableModal = true;
+                disableError = '';
+                disableTotpCode = '';
+                disablePassword = '';
+              }}
+              class="px-3.5 py-1.5 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900 rounded-xl text-xs font-semibold transition cursor-pointer"
+            >
+              Nonaktifkan 2FA
+            </button>
+          </div>
+        </div>
+      {:else if !mfaSetupData}
         <button
-          onclick={startMfaSetup}
-          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-md transition cursor-pointer"
+          type="button"
+          onclick={() => startMfaSetup(false)}
+          disabled={isSettingUpMfa}
+          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold shadow-md transition cursor-pointer flex items-center gap-2"
         >
-          Setup Two-Factor Authentication
+          {#if isSettingUpMfa}
+            <div class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <span>Menyiapkan...</span>
+          {:else}
+            <QrCode class="w-4 h-4" />
+            <span>Setup Two-Factor Authentication</span>
+          {/if}
         </button>
       {/if}
 
       <!-- MFA Setup Wizard -->
-      {#if mfaSetupData}
-        <div class="p-6 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-4">
-          <h4 class="font-bold text-xs uppercase tracking-wider text-slate-600 dark:text-slate-300">
-            Scan QR Code with your Authenticator App
-          </h4>
+      {#if mfaSetupData && !mfaEnabled}
+        <div class="p-6 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+              <QrCode class="w-4 h-4 text-blue-600" />
+              Scan QR Code Dengan Aplikasi Authenticator
+            </h4>
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                onclick={() => startMfaSetup(true)}
+                title="Regenerate QR Code & Secret Key"
+                class="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-700 dark:text-blue-400 font-semibold cursor-pointer"
+              >
+                <RefreshCw class="w-3 h-3" />
+                Refresh QR
+              </button>
+              <button
+                type="button"
+                onclick={() => {
+                  mfaSetupData = null;
+                  mfaError = '';
+                }}
+                class="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg cursor-pointer"
+              >
+                <X class="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          <!-- Error popup banner inside wizard -->
+          {#if mfaError}
+            <div class="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-xl text-xs text-red-700 dark:text-red-300 flex items-center justify-between gap-2 shadow-xs animate-in shake duration-200">
+              <div class="flex items-center gap-2">
+                <AlertCircle class="w-4 h-4 shrink-0 text-red-600" />
+                <span>{mfaError}</span>
+              </div>
+              <button onclick={() => (mfaError = '')} class="p-1 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg text-red-500 cursor-pointer">
+                <X class="w-3 h-3" />
+              </button>
+            </div>
+          {/if}
 
           <div class="flex flex-col sm:flex-row items-center gap-6">
-            <img
-              src={mfaSetupData.qrCodeDataUrl}
-              alt="MFA QR Code"
-              class="w-40 h-40 bg-white p-2 rounded-xl shadow-md border border-slate-200"
-            />
+            <div class="p-2.5 bg-white rounded-2xl shadow-md border border-slate-200 shrink-0">
+              <img
+                src={mfaSetupData.qrCodeDataUrl}
+                alt="MFA QR Code"
+                class="w-40 h-40 object-contain rounded-lg"
+              />
+            </div>
 
-            <div class="space-y-3 flex-1 text-xs">
+            <div class="space-y-3 flex-1 text-xs w-full">
               <p class="text-slate-600 dark:text-slate-400">
-                Or manually enter this secret key into your authenticator app:
+                Gunakan <strong>Google Authenticator</strong>, <strong>Authy</strong>, atau <strong>1Password</strong> untuk memindai QR code di samping, atau masukkan manual secret key berikut:
               </p>
-              <code class="block p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg font-mono text-blue-600 dark:text-blue-400 select-all font-bold">
-                {mfaSetupData.secret}
-              </code>
+              <div class="flex items-center gap-2">
+                <code class="flex-1 p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-xs text-blue-600 dark:text-blue-400 font-bold select-all tracking-wider">
+                  {mfaSetupData.secret}
+                </code>
+                <button
+                  type="button"
+                  onclick={() => {
+                    navigator.clipboard.writeText(mfaSetupData!.secret);
+                    mfaMessage = 'Secret key disalin ke clipboard';
+                    setTimeout(() => (mfaMessage = ''), 2000);
+                  }}
+                  title="Copy secret key"
+                  class="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-blue-400 rounded-xl text-slate-500 hover:text-blue-600 transition cursor-pointer"
+                >
+                  <Copy class="w-4 h-4" />
+                </button>
+              </div>
 
               <div>
-                <label for="totp-input" class="block text-xs font-semibold mb-1">Enter 6-digit code to verify:</label>
-                <div class="flex gap-2">
+                <label for="totp-input" class="block text-xs font-semibold mb-1 text-slate-700 dark:text-slate-300">
+                  Masukkan 6-digit kode dari HP untuk verifikasi:
+                </label>
+                <div class="flex items-center gap-2">
                   <input
                     id="totp-input"
                     type="text"
-                    bind:value={totpCode}
+                    inputmode="numeric"
+                    autocomplete="one-time-code"
                     maxlength="6"
                     placeholder="123456"
-                    class="w-32 text-center font-mono text-base tracking-widest px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl"
+                    bind:value={totpCode}
+                    onkeydown={(e) => e.key === 'Enter' && confirmMfa()}
+                    oninput={(e: any) => {
+                      totpCode = e.target.value.replace(/[^\d]/g, '').slice(0, 6);
+                      if (mfaError) mfaError = '';
+                    }}
+                    class="w-36 text-center font-mono text-base tracking-widest px-3.5 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 rounded-xl text-slate-900 dark:text-white"
                   />
                   <button
+                    type="button"
+                    disabled={isConfirmingMfa || totpCode.length !== 6}
                     onclick={confirmMfa}
-                    class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs shadow-md cursor-pointer"
+                    class="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold rounded-xl text-xs shadow-md transition cursor-pointer flex items-center gap-1.5"
                   >
-                    Confirm & Enable
+                    {#if isConfirmingMfa}
+                      <div class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Memverifikasi...</span>
+                    {:else}
+                      <Check class="w-4 h-4" />
+                      <span>Confirm & Enable</span>
+                    {/if}
                   </button>
                 </div>
               </div>
@@ -368,26 +573,135 @@
           </div>
         </div>
       {/if}
+    </div>
 
-      <!-- Backup codes display -->
-      {#if backupCodes.length > 0}
-        <div class="mt-4 p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-2xl">
-          <h4 class="font-bold text-xs text-amber-900 dark:text-amber-200 mb-1">
-            Save Your One-Time Backup Recovery Codes
-          </h4>
-          <p class="text-[11px] text-amber-700 dark:text-amber-300 mb-3">
-            If you lose access to your authenticator device, each code can be used once to access your account.
-          </p>
-          <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 font-mono text-xs font-bold text-slate-800 dark:text-slate-200">
+    <!-- Backup Codes Modal Popup -->
+    {#if showBackupCodesModal && backupCodes.length > 0}
+      <div class="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
+        <div class="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-6 overflow-hidden animate-in zoom-in-95 duration-200">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 flex items-center justify-center shrink-0">
+              <CheckCircle class="w-6 h-6" />
+            </div>
+            <div>
+              <h3 class="font-bold text-base text-slate-900 dark:text-white">
+                2FA Berhasil Diaktifkan! 🎉
+              </h3>
+              <p class="text-xs text-slate-500">
+                Simpan 10 Kode Pemulihan Cadangan (Backup Codes) Anda di tempat aman.
+              </p>
+            </div>
+          </div>
+
+          <div class="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-xl text-[11px] text-amber-800 dark:text-amber-200 mb-4">
+            Jika Anda kehilangan akses ke HP/Google Authenticator, setiap kode di bawah ini dapat digunakan satu kali untuk login.
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 font-mono text-xs font-bold text-slate-800 dark:text-slate-200 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700 mb-5">
             {#each backupCodes as code}
-              <span class="p-1.5 bg-white dark:bg-slate-900 rounded-lg text-center border border-amber-200 dark:border-amber-800">
+              <div class="p-2 bg-white dark:bg-slate-900 rounded-lg text-center border border-slate-200 dark:border-slate-700 shadow-2xs select-all">
                 {code}
-              </span>
+              </div>
             {/each}
           </div>
+
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                type="button"
+                onclick={copyBackupCodes}
+                class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold transition cursor-pointer"
+              >
+                {#if codesCopied}
+                  <Check class="w-4 h-4 text-emerald-500" />
+                  <span>Disalin!</span>
+                {:else}
+                  <Copy class="w-4 h-4" />
+                  <span>Salin Semua</span>
+                {/if}
+              </button>
+
+              <button
+                type="button"
+                onclick={downloadBackupCodes}
+                class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold transition cursor-pointer"
+              >
+                <Download class="w-4 h-4" />
+                <span>Download .TXT</span>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onclick={() => (showBackupCodesModal = false)}
+              class="w-full sm:w-auto px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-md transition cursor-pointer"
+            >
+              Saya Sudah Menyimpan Kode
+            </button>
+          </div>
         </div>
-      {/if}
-    </div>
+      </div>
+    {/if}
+
+    <!-- Disable MFA Modal Popup -->
+    {#if showDisableModal}
+      <div class="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
+        <div class="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-6 overflow-hidden animate-in zoom-in-95 duration-200">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2 text-red-600">
+              <AlertCircle class="w-5 h-5" />
+              Nonaktifkan 2FA
+            </h3>
+            <button onclick={() => (showDisableModal = false)} class="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer">
+              <X class="w-5 h-5 text-slate-400" />
+            </button>
+          </div>
+
+          {#if disableError}
+            <div class="mb-4 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-xl text-xs text-red-700 dark:text-red-300">
+              {disableError}
+            </div>
+          {/if}
+
+          <p class="text-xs text-slate-600 dark:text-slate-400 mb-4">
+            Menonaktifkan Two-Factor Authentication akan menurunkan tingkat keamanan akun Anda. Masukkan kode TOTP atau backup code untuk mengonfirmasi:
+          </p>
+
+          <div class="space-y-3 mb-5">
+            <div>
+              <label for="disable-code" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Kode TOTP (6 digit) atau Backup Code:
+              </label>
+              <input
+                id="disable-code"
+                type="text"
+                bind:value={disableTotpCode}
+                placeholder="123456 atau ABCD-1234"
+                class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white"
+              />
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onclick={() => (showDisableModal = false)}
+              class="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-xs font-semibold cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              disabled={isDisablingMfa}
+              onclick={handleDisableMfa}
+              class="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold shadow-md transition cursor-pointer"
+            >
+              {isDisablingMfa ? 'Menonaktifkan...' : 'Konfirmasi Nonaktifkan'}
+            </button>
+          </div>
+        </div>
+      </div>
+    {/if}
 
     <!-- Security Events Log -->
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xs">
