@@ -18,7 +18,7 @@ export async function hashToken(token: string): Promise<string> {
 /**
  * Robustly matches an input backup code against hashed backup codes stored in the database.
  * Tests multiple normalized formats (hyphenated, unhyphenated, trimmed, uppercase)
- * to guarantee backwards compatibility and forgiving user input.
+ * and automatically extracts individual tokens if the user pastes multiple codes or the full list.
  */
 export async function matchBackupCode(
   inputCode: string,
@@ -27,17 +27,32 @@ export async function matchBackupCode(
   if (!inputCode || !backupCodesHash || backupCodesHash.length === 0) return -1;
 
   const raw = String(inputCode).trim();
-  const clean = raw.replace(/[\s-]+/g, '').toUpperCase();
-  const hyphenated = clean.length === 8 ? `${clean.slice(0, 4)}-${clean.slice(4)}` : clean;
+  const candidates = new Set<string>();
 
-  const candidates = Array.from(new Set([
-    raw.toUpperCase(),
-    clean,
-    hyphenated,
-    raw,
-  ]));
+  // 1. Direct candidates
+  candidates.add(raw);
+  candidates.add(raw.toUpperCase());
+
+  // 2. Extract any 8-char or hyphenated code patterns (e.g. if user pasted multiple codes or full list)
+  const extractedTokens = raw.match(/[A-Za-z0-9]{4}-[A-Za-z0-9]{4}|[A-Za-z0-9]{8}/g) || [];
+  for (const token of extractedTokens) {
+    const cleanToken = token.replace(/[\s-]+/g, '').toUpperCase();
+    candidates.add(token.toUpperCase());
+    candidates.add(cleanToken);
+    if (cleanToken.length === 8) {
+      candidates.add(`${cleanToken.slice(0, 4)}-${cleanToken.slice(4)}`);
+    }
+  }
+
+  // 3. Normalized single-code format
+  const cleanSingle = raw.replace(/[\s-]+/g, '').toUpperCase();
+  candidates.add(cleanSingle);
+  if (cleanSingle.length === 8) {
+    candidates.add(`${cleanSingle.slice(0, 4)}-${cleanSingle.slice(4)}`);
+  }
 
   for (const candidate of candidates) {
+    if (!candidate) continue;
     const hash = await hashToken(candidate);
     const idx = backupCodesHash.indexOf(hash);
     if (idx !== -1) {

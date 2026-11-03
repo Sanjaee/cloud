@@ -1,16 +1,16 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { apiRequest } from '$lib/api/client';
-  import { Cloud, Lock, Mail, User, ArrowRight, AlertCircle, CheckCircle, Sparkles, ShieldCheck } from 'lucide-svelte';
+  import { Cloud, Lock, Mail, User, ArrowRight, AlertCircle, CheckCircle, ShieldCheck, Eye, EyeOff } from 'lucide-svelte';
 
   let email = $state('');
   let username = $state('');
   let password = $state('');
+  let showPassword = $state(false);
   let error = $state('');
   let isSuccess = $state(false);
   let isLoading = $state(false);
   let isGoogleLoading = $state(false);
-  let showManualForm = $state(false);
 
   // Password requirements
   let hasLength = $derived(password.length >= 8);
@@ -47,7 +47,7 @@
   async function handleRegister(e: Event) {
     e.preventDefault();
     if (!isPasswordStrong) {
-      error = 'Please satisfy all password security requirements.';
+      error = 'Harap penuhi semua syarat keamanan password (minimal 8 karakter, huruf besar, huruf kecil, dan angka).';
       return;
     }
 
@@ -69,195 +69,161 @@
 </script>
 
 <svelte:head>
-  <title>Create Account — REA Cloud Storage</title>
+  <title>Create Account — Zacode Cloud Storage</title>
 </svelte:head>
 
-<div class="flex min-h-screen items-center justify-center p-4 bg-gradient-to-br from-slate-100 via-slate-50 to-blue-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-  <div class="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200/80 dark:border-slate-800 p-8 sm:p-10 transition-all">
-    <div class="flex flex-col items-center mb-8">
-      <div class="w-16 h-16 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-blue-500/25 mb-4 ring-4 ring-blue-500/10">
-        <Cloud class="w-9 h-9" />
-      </div>
-      <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Create Account</h1>
-      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1.5 text-center">
-        Get 10 GB of secure multi-user cloud storage instantly
-      </p>
+<div class="flex min-h-screen items-center justify-center p-4 bg-[#09090b] text-white">
+  <div class="w-full max-w-sm sm:max-w-[400px] bg-[#121214] border border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
+    <!-- Header -->
+    <div class="text-center space-y-1.5">
+      <h1 class="text-2xl font-bold tracking-tight text-white">Create an account</h1>
+      <p class="text-xs text-zinc-400">Get 10 GB secure private storage instantly</p>
     </div>
 
     {#if isSuccess}
-      <div class="p-6 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 rounded-2xl text-center animate-in fade-in">
-        <CheckCircle class="w-12 h-12 text-emerald-600 dark:text-emerald-400 mx-auto mb-3" />
-        <h3 class="font-bold text-emerald-900 dark:text-emerald-200 text-lg">Registration Successful!</h3>
-        <p class="text-xs text-emerald-700 dark:text-emerald-300 mt-1 mb-5">
-          Your account has been created. You can now sign in immediately.
+      <div class="p-5 bg-zinc-900 border border-zinc-800 rounded-xl text-center space-y-3 animate-in fade-in">
+        <CheckCircle class="w-10 h-10 text-emerald-400 mx-auto" />
+        <h3 class="font-bold text-white text-base">Registration Successful!</h3>
+        <p class="text-xs text-zinc-400">
+          Akun Anda telah berhasil dibuat. Silakan login untuk mulai menggunakan Zacode Cloud.
         </p>
         <a
           href="/login"
-          class="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold shadow-md transition"
+          class="block w-full py-2.5 bg-white text-zinc-950 hover:bg-zinc-200 font-semibold text-sm rounded-lg shadow-xs transition mt-2"
         >
           Sign In Now
         </a>
       </div>
     {:else}
+      <!-- Error Alert -->
       {#if error}
-        <div class="mb-6 p-4 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900/60 rounded-2xl flex items-start gap-3 text-red-700 dark:text-red-300 text-sm animate-in fade-in">
-          <AlertCircle class="w-5 h-5 shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
+        <div class="p-3 bg-red-950/40 border border-red-900/60 rounded-xl flex items-start gap-2.5 text-xs text-red-300 animate-in fade-in">
+          <AlertCircle class="w-4 h-4 shrink-0 text-red-400 mt-0.5" />
           <div class="flex-1">
-            <p class="font-medium">Registration Error</p>
-            <p class="text-xs text-red-600 dark:text-red-400 mt-0.5">{error}</p>
+            <p class="font-medium text-red-200">Registration Error</p>
+            <p class="text-[11px] text-red-400 mt-0.5 leading-relaxed">{error}</p>
           </div>
         </div>
       {/if}
 
-      <!-- PRIMARY: Google Sign-Up Button -->
-      <div class="space-y-4">
+      <!-- Google Sign-Up Button -->
+      <button
+        type="button"
+        onclick={handleGoogleSignUp}
+        disabled={isGoogleLoading || isLoading}
+        class="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-white rounded-lg text-sm font-medium transition cursor-pointer active:scale-[0.99] disabled:opacity-50"
+      >
+        {#if isGoogleLoading}
+          <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          <span>Connecting to Google...</span>
+        {:else}
+          <!-- Official Google "G" Logo SVG -->
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          </svg>
+          <span>Sign up with Google</span>
+        {/if}
+      </button>
+
+      <!-- Divider: "Or continue with" -->
+      <div class="relative my-4">
+        <div class="absolute inset-0 flex items-center">
+          <div class="w-full border-t border-zinc-800"></div>
+        </div>
+        <div class="relative flex justify-center text-[10px] uppercase">
+          <span class="bg-[#121214] px-2 text-zinc-500 font-medium tracking-wider">
+            Or continue with email
+          </span>
+        </div>
+      </div>
+
+      <!-- Registration Form -->
+      <form onsubmit={handleRegister} class="space-y-3.5">
+        <div class="space-y-1">
+          <label for="username" class="text-xs font-medium text-zinc-300 block">
+            Username
+          </label>
+          <input
+            id="username"
+            type="text"
+            bind:value={username}
+            required
+            placeholder="johndoe"
+            class="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 transition"
+          />
+        </div>
+
+        <div class="space-y-1">
+          <label for="email" class="text-xs font-medium text-zinc-300 block">
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            bind:value={email}
+            required
+            placeholder="m@example.com"
+            class="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 transition"
+          />
+        </div>
+
+        <div class="space-y-1">
+          <label for="password" class="text-xs font-medium text-zinc-300 block">
+            Password
+          </label>
+          <div class="relative">
+            <input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              bind:value={password}
+              required
+              placeholder="••••••••"
+              class="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 transition pr-9"
+            />
+            <button
+              type="button"
+              onclick={() => (showPassword = !showPassword)}
+              class="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 cursor-pointer"
+            >
+              {#if showPassword}
+                <EyeOff class="w-4 h-4" />
+              {:else}
+                <Eye class="w-4 h-4" />
+              {/if}
+            </button>
+          </div>
+          <div class="grid grid-cols-2 gap-1 pt-1 text-[10px] text-zinc-500">
+            <span class={hasLength ? 'text-emerald-400' : ''}>• 8+ Karakter</span>
+            <span class={hasUpper ? 'text-emerald-400' : ''}>• Huruf Besar</span>
+            <span class={hasLower ? 'text-emerald-400' : ''}>• Huruf Kecil</span>
+            <span class={hasNumber ? 'text-emerald-400' : ''}>• Angka</span>
+          </div>
+        </div>
+
         <button
-          type="button"
-          onclick={handleGoogleSignUp}
-          disabled={isGoogleLoading || isLoading}
-          class="w-full relative flex items-center justify-center gap-3.5 py-3.5 px-5 bg-white hover:bg-slate-50 dark:bg-slate-800/90 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 font-medium text-base rounded-2xl border border-slate-300 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-slate-400 dark:hover:border-slate-600 transition duration-150 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer focus:outline-none focus:ring-4 focus:ring-blue-500/15"
+          type="submit"
+          disabled={isLoading || isGoogleLoading || !isPasswordStrong}
+          class="w-full mt-2 py-2.5 bg-white text-zinc-950 hover:bg-zinc-200 disabled:opacity-50 font-semibold text-sm rounded-lg shadow-xs transition cursor-pointer active:scale-[0.99] flex items-center justify-center gap-2"
         >
-          {#if isGoogleLoading}
-            <div class="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-            <span>Connecting to Google...</span>
+          {#if isLoading}
+            <div class="w-4 h-4 border-2 border-zinc-950 border-t-transparent rounded-full animate-spin"></div>
+            <span>Creating account...</span>
           {:else}
-            <!-- Official Google "G" Logo SVG -->
-            <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24">
-              <path
-                fill="#4285F4"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-              />
-            </svg>
-            <span class="tracking-tight">Sign up with Google</span>
+            <span>Create Account</span>
           {/if}
         </button>
-
-        <div class="flex items-center gap-2 justify-center text-xs text-slate-500 dark:text-slate-400">
-          <ShieldCheck class="w-3.5 h-3.5 text-emerald-500" />
-          <span>Automatic verified setup • No password needed</span>
-        </div>
-      </div>
-
-      <!-- Divider -->
-      <div class="relative my-7">
-        <div class="absolute inset-0 flex items-center">
-          <div class="w-full border-t border-slate-200 dark:border-slate-800"></div>
-        </div>
-        <div class="relative flex justify-center text-xs">
-          <button
-            type="button"
-            onclick={() => showManualForm = !showManualForm}
-            class="bg-white dark:bg-slate-900 px-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 font-medium cursor-pointer transition"
-          >
-            {showManualForm ? 'Hide manual registration' : 'Or register with email'}
-          </button>
-        </div>
-      </div>
-
-      <!-- Manual Form -->
-      {#if showManualForm}
-        <form onsubmit={handleRegister} class="space-y-4 animate-in fade-in duration-200">
-          <div>
-            <label for="email" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
-              Email Address
-            </label>
-            <div class="relative">
-              <Mail class="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-              <input
-                id="email"
-                type="email"
-                bind:value={email}
-                required
-                placeholder="you@example.com"
-                class="w-full pl-11 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white transition"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label for="username" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
-              Username
-            </label>
-            <div class="relative">
-              <User class="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-              <input
-                id="username"
-                type="text"
-                bind:value={username}
-                required
-                minlength="3"
-                placeholder="username"
-                class="w-full pl-11 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white transition"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label for="password" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
-              Password (Argon2id Encrypted)
-            </label>
-            <div class="relative">
-              <Lock class="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-              <input
-                id="password"
-                type="password"
-                bind:value={password}
-                required
-                placeholder="••••••••••••"
-                class="w-full pl-11 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white transition"
-              />
-            </div>
-          </div>
-
-          <!-- Password Checklist -->
-          <div class="p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 rounded-xl text-xs space-y-1 text-slate-500 dark:text-slate-400">
-            <div class="flex items-center gap-1.5 {hasLength ? 'text-emerald-600 dark:text-emerald-400 font-medium' : ''}">
-              <span>{hasLength ? '✓' : '○'}</span> At least 8 characters
-            </div>
-            <div class="flex items-center gap-1.5 {hasUpper && hasLower ? 'text-emerald-600 dark:text-emerald-400 font-medium' : ''}">
-              <span>{hasUpper && hasLower ? '✓' : '○'}</span> Uppercase and lowercase letters
-            </div>
-            <div class="flex items-center gap-1.5 {hasNumber ? 'text-emerald-600 dark:text-emerald-400 font-medium' : ''}">
-              <span>{hasNumber ? '✓' : '○'}</span> At least one number
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading || isGoogleLoading || !isPasswordStrong}
-            class="w-full mt-2 flex items-center justify-center gap-2 py-3 px-4 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-medium text-sm rounded-xl shadow-md disabled:opacity-50 transition cursor-pointer"
-          >
-            {#if isLoading}
-              <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              <span>Creating Account...</span>
-            {:else}
-              <span>Create Account</span>
-              <ArrowRight class="w-4 h-4" />
-            {/if}
-          </button>
-        </form>
-      {/if}
+      </form>
     {/if}
 
-    <div class="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 text-center">
-      <p class="text-sm text-slate-600 dark:text-slate-400">
-        Already have an account?
-        <a href="/login" class="font-semibold text-blue-600 dark:text-blue-400 hover:underline ml-1">
-          Sign In
-        </a>
-      </p>
+    <!-- Footer Links -->
+    <div class="text-center text-xs text-zinc-400 pt-1">
+      <span>Already have an account?</span>
+      <a href="/login" class="text-white hover:underline font-medium ml-1">
+        Sign in
+      </a>
     </div>
   </div>
 </div>

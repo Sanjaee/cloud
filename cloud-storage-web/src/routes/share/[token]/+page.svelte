@@ -53,7 +53,7 @@
     <div class="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/25">
       <Cloud class="w-6 h-6" />
     </div>
-    <span class="font-bold text-xl text-slate-900 dark:text-white tracking-tight">REA Cloud Storage</span>
+    <span class="font-bold text-xl text-slate-900 dark:text-white tracking-tight">Zacode Cloud Storage</span>
   </div>
 
   <div class="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 p-8">
@@ -70,7 +70,7 @@
         <h3 class="font-bold text-slate-900 dark:text-white text-base">Unable to Open Link</h3>
         <p class="text-xs text-slate-500 mt-1 mb-6 leading-relaxed">{error}</p>
         <a href="/login" class="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold">
-          Sign In to REA Storage
+          Sign In to Zacode Storage
         </a>
       </div>
     {:else if passwordRequired}

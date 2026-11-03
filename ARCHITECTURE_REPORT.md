@@ -1,4 +1,4 @@
-# REA — Enterprise Multi-User Cloud Storage Platform
+# Zacode — Enterprise Multi-User Cloud Storage Platform
 ## Complete Independent Architecture Report
 
 ### Repositories Overview

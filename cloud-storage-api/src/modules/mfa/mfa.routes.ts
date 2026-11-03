@@ -68,7 +68,7 @@ export const mfaRoutes = new Elysia({ prefix: '/mfa' })
 
       const otpauthUrl = authenticator.keyuri(
         currentUser.email,
-        'REA Cloud Storage',
+        'Zacode Cloud Storage',
         secret
       );
 

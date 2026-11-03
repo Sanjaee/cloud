@@ -210,12 +210,12 @@
 
   function downloadBackupCodes() {
     if (backupCodes.length === 0) return;
-    const content = `REA CLOUD STORAGE - 2FA BACKUP CODES\nGenerated: ${new Date().toISOString()}\n\nEach code can be used once to access your account if you lose your authenticator app:\n\n${backupCodes.join('\n')}\n\nKeep these codes safe and private!`;
+    const content = `ZACODE CLOUD STORAGE - 2FA BACKUP CODES\nGenerated: ${new Date().toISOString()}\n\nEach code can be used once to access your account if you lose your authenticator app:\n\n${backupCodes.join('\n')}\n\nKeep these codes safe and private!`;
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'rea-cloud-backup-codes.txt';
+    a.download = 'zacode-cloud-backup-codes.txt';
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -609,15 +609,24 @@
             </div>
           </div>
 
-          <div class="p-2.5 bg-zinc-900/80 border border-zinc-800 rounded-lg text-[11px] text-zinc-300 mb-3">
-            Gunakan backup code ini jika Anda kehilangan akses ke aplikasi authenticator di ponsel Anda.
+          <div class="p-2.5 bg-zinc-900/80 border border-zinc-800 rounded-lg text-[11px] text-zinc-300 mb-3 space-y-1">
+            <p>Gunakan backup code ini jika Anda kehilangan akses ke aplikasi authenticator di ponsel Anda.</p>
+            <p class="text-emerald-400 font-medium">*Gunakan 1 kode per login (setiap kode hanya bisa digunakan sekali). Klik salah satu kode di bawah untuk menyalin kode tersebut.</p>
           </div>
 
           <div class="grid grid-cols-2 gap-1.5 font-mono text-xs font-semibold text-zinc-200 p-2.5 bg-zinc-950 rounded-lg border border-zinc-800/80 mb-4">
             {#each backupCodes as code}
-              <div class="p-1.5 bg-[#121214] rounded text-center border border-zinc-800 select-all">
+              <button
+                type="button"
+                onclick={() => {
+                  navigator.clipboard.writeText(code);
+                  alert(`Kode ${code} berhasil disalin! Masukkan kode ini saat login.`);
+                }}
+                class="p-1.5 bg-[#121214] hover:bg-zinc-800 rounded text-center border border-zinc-800 hover:border-zinc-700 transition cursor-pointer select-all"
+                title="Klik untuk salin kode ini"
+              >
                 {code}
-              </div>
+              </button>
             {/each}
           </div>
 

@@ -38,7 +38,7 @@ export const app = new Elysia()
       path: '/swagger',
       documentation: {
         info: {
-          title: 'REA Cloud Storage API',
+          title: 'Zacode Cloud Storage API',
           version: '1.0.0',
           description:
             'Production-grade REST API for Multi-User Cloud Storage SaaS platform. Supports Web and Mobile clients with Argon2id, Cloudflare R2 direct uploads, and native reference-based sharing.',

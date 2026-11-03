@@ -1,4 +1,4 @@
-# REA Cloud Storage API
+# Zacode Cloud Storage API
 
 Production-grade, mobile-ready backend API for Multi-User Cloud Storage SaaS platform.
 Built with **ElysiaJS**, **Bun**, **Drizzle ORM**, **PostgreSQL (Neon)**, and **Cloudflare R2**.

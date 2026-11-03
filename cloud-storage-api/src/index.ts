@@ -5,7 +5,7 @@ import { env } from './config/env';
 if (!process.env.VERCEL) {
   const port = Number(env.PORT) || 3000;
   app.listen(port, () => {
-    console.log(`🚀 REA Cloud Storage API running at http://localhost:${port}`);
+    console.log(`🚀 Zacode Cloud Storage API running at http://localhost:${port}`);
     console.log(`📚 OpenAPI / Swagger documentation: http://localhost:${port}/swagger`);
   });
 }

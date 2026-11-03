@@ -106,7 +106,7 @@
       </div>
       {#if !isSidebarCollapsed}
         <div class="flex flex-col min-w-0 truncate">
-          <span class="text-xs font-bold text-white tracking-tight truncate">REA Storage</span>
+          <span class="text-xs font-bold text-white tracking-tight truncate">Zacode Storage</span>
           <span class="text-[10px] text-zinc-400 truncate">Enterprise Cloud</span>
         </div>
       {/if}

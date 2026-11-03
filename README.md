@@ -1,4 +1,4 @@
-# REA Cloud Storage Platform
+# Zacode Cloud Storage Platform
 
 Complete multi-user cloud storage platform inspired by Google Drive, built with secure authentication, private storage, collaborative file sharing via Cloudflare R2, and independent Vercel deployments.
 

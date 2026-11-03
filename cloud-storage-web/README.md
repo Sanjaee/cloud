@@ -1,4 +1,4 @@
-# REA Cloud Storage Web
+# Zacode Cloud Storage Web
 
 Independent production-grade Web frontend for Multi-User Cloud Storage SaaS platform.
 Built with **SvelteKit**, **Svelte 5**, **TypeScript**, **Tailwind CSS**, **TanStack Query**, **TanStack Table**, **Zustand**, and **Lucide**.
