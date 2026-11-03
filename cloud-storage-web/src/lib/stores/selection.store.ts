@@ -1,19 +1,27 @@
 import { createStore } from 'zustand/vanilla';
 import type { FileItem, FolderItem } from '$lib/api/types';
 
+export interface BatchResourceItem {
+  type: 'file' | 'folder';
+  item: FileItem | FolderItem;
+}
+
 interface SelectionStoreState {
   selectedFileIds: Set<string>;
   selectedFolderIds: Set<string>;
   viewMode: 'grid' | 'table';
   previewFile: FileItem | null;
   sharingResource: { type: 'file' | 'folder'; item: FileItem | FolderItem } | null;
+  batchSharingResources: BatchResourceItem[] | null;
 
   setViewMode: (mode: 'grid' | 'table') => void;
   toggleFileSelection: (id: string, multi?: boolean) => void;
   toggleFolderSelection: (id: string, multi?: boolean) => void;
+  selectAll: (fileIds: string[], folderIds: string[]) => void;
   clearSelection: () => void;
   setPreviewFile: (file: FileItem | null) => void;
   setSharingResource: (res: { type: 'file' | 'folder'; item: FileItem | FolderItem } | null) => void;
+  setBatchSharingResources: (items: BatchResourceItem[] | null) => void;
 }
 
 export const selectionStore = createStore<SelectionStoreState>((set) => ({
@@ -22,10 +30,11 @@ export const selectionStore = createStore<SelectionStoreState>((set) => ({
   viewMode: 'grid',
   previewFile: null,
   sharingResource: null,
+  batchSharingResources: null,
 
   setViewMode: (mode) => set({ viewMode: mode }),
 
-  toggleFileSelection: (id, multi = false) =>
+  toggleFileSelection: (id, multi = true) =>
     set((state) => {
       const next = multi ? new Set(state.selectedFileIds) : new Set<string>();
       if (next.has(id)) next.delete(id);
@@ -33,7 +42,7 @@ export const selectionStore = createStore<SelectionStoreState>((set) => ({
       return { selectedFileIds: next, selectedFolderIds: multi ? state.selectedFolderIds : new Set() };
     }),
 
-  toggleFolderSelection: (id, multi = false) =>
+  toggleFolderSelection: (id, multi = true) =>
     set((state) => {
       const next = multi ? new Set(state.selectedFolderIds) : new Set<string>();
       if (next.has(id)) next.delete(id);
@@ -41,10 +50,18 @@ export const selectionStore = createStore<SelectionStoreState>((set) => ({
       return { selectedFolderIds: next, selectedFileIds: multi ? state.selectedFileIds : new Set() };
     }),
 
+  selectAll: (fileIds, folderIds) =>
+    set({
+      selectedFileIds: new Set(fileIds),
+      selectedFolderIds: new Set(folderIds),
+    }),
+
   clearSelection: () => set({ selectedFileIds: new Set(), selectedFolderIds: new Set() }),
 
   setPreviewFile: (file) => set({ previewFile: file }),
 
   setSharingResource: (res) => set({ sharingResource: res }),
+
+  setBatchSharingResources: (items) => set({ batchSharingResources: items }),
 }));
 

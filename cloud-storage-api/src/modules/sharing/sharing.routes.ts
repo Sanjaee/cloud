@@ -131,6 +131,120 @@ export const sharingRoutes = new Elysia({ prefix: '/shares' })
     }
   )
 
+  // 1b. Batch Share resources (multiple files and/or folders) with another user
+  .post(
+    '/batch',
+    async ({ currentUser, body }: any) => {
+      if (!currentUser) throw new AppError(401, 'UNAUTHORIZED', 'Authentication required');
+
+      const { items, recipientEmailOrUsername, permission, expiresAt, message } = body;
+
+      const recipient = await db.query.users.findFirst({
+        where: or(
+          eq(users.email, recipientEmailOrUsername.toLowerCase().trim()),
+          eq(users.username, recipientEmailOrUsername.trim())
+        ),
+      });
+
+      if (!recipient) {
+        throw new AppError(404, 'RECIPIENT_NOT_FOUND', 'Target user could not be found');
+      }
+
+      if (recipient.id === currentUser.id) {
+        throw new AppError(400, 'CANNOT_SHARE_WITH_SELF', 'You already own these resources');
+      }
+
+      const expirationDate = expiresAt ? new Date(expiresAt) : null;
+      let sharedCount = 0;
+
+      for (const item of items) {
+        const { resourceType, resourceId } = item;
+        try {
+          if (resourceType === 'file') {
+            const perm = await PermissionEngine.resolveFilePermission(currentUser.id, resourceId);
+            if (!perm.hasAccess || !perm.isOwner) continue;
+
+            const existing = await db.query.filePermissions.findFirst({
+              where: and(eq(filePermissions.fileId, resourceId), eq(filePermissions.grantedTo, recipient.id)),
+            });
+
+            if (existing) {
+              await db
+                .update(filePermissions)
+                .set({ permission, expiresAt: expirationDate })
+                .where(eq(filePermissions.id, existing.id));
+            } else {
+              await db.insert(filePermissions).values({
+                fileId: resourceId,
+                grantedBy: currentUser.id,
+                grantedTo: recipient.id,
+                permission,
+                expiresAt: expirationDate,
+              });
+            }
+            sharedCount++;
+          } else {
+            const perm = await PermissionEngine.resolveFolderPermission(currentUser.id, resourceId);
+            if (!perm.hasAccess || !perm.isOwner) continue;
+
+            const existing = await db.query.folderPermissions.findFirst({
+              where: and(eq(folderPermissions.folderId, resourceId), eq(folderPermissions.grantedTo, recipient.id)),
+            });
+
+            if (existing) {
+              await db
+                .update(folderPermissions)
+                .set({ permission, expiresAt: expirationDate })
+                .where(eq(folderPermissions.id, existing.id));
+            } else {
+              await db.insert(folderPermissions).values({
+                folderId: resourceId,
+                grantedBy: currentUser.id,
+                grantedTo: recipient.id,
+                permission,
+                expiresAt: expirationDate,
+              });
+            }
+            sharedCount++;
+          }
+        } catch {}
+      }
+
+      // Notify recipient
+      if (sharedCount > 0) {
+        await db.insert(notifications).values({
+          userId: recipient.id,
+          type: 'resource_shared',
+          title: 'New items shared with you',
+          message: `${currentUser.username} shared ${sharedCount} item(s) with you (${permission} access)${message ? `: "${message}"` : ''}`,
+          resourceType: 'file',
+          resourceId: items[0]?.resourceId,
+        });
+      }
+
+      return {
+        success: true,
+        message: `Successfully shared ${sharedCount} item(s) with ${recipient.username}`,
+        data: { sharedCount },
+      };
+    },
+    {
+      body: t.Object({
+        items: t.Array(
+          t.Object({
+            resourceType: t.Union([t.Literal('file'), t.Literal('folder')]),
+            resourceId: t.String({ format: 'uuid' }),
+          })
+        ),
+        recipientEmailOrUsername: t.String({ minLength: 1 }),
+        permission: t.Union([t.Literal('viewer'), t.Literal('commenter'), t.Literal('editor')]),
+        expiresAt: t.Optional(t.Nullable(t.String())),
+        message: t.Optional(t.String({ maxLength: 500 })),
+      }),
+      detail: { tags: ['Sharing'], summary: 'Batch share multiple files and folders' },
+    }
+  )
+
   // 2. List Collaborators for a resource
   .get(
     '/:resourceType/:resourceId/collaborators',

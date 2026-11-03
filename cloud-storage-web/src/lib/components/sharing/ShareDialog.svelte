@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { selectionStore } from '$lib/stores/selection.store';
+  import { selectionStore, type BatchResourceItem } from '$lib/stores/selection.store';
   import { apiRequest } from '$lib/api/client';
   import {
     X,
@@ -11,10 +11,12 @@
     Shield,
     Users,
     AlertCircle,
+    Layers,
   } from 'lucide-svelte';
   import type { CollaboratorInfo } from '$lib/api/types';
 
   let resource = $state<{ type: 'file' | 'folder'; item: any } | null>(null);
+  let batchResources = $state<BatchResourceItem[] | null>(null);
   let activeTab = $state<'users' | 'link'>('users');
   let recipientInput = $state('');
   let searchResults = $state<{ id: string; email: string; username: string }[]>([]);
@@ -33,7 +35,8 @@
 
   selectionStore.subscribe(async (s) => {
     resource = s.sharingResource;
-    if (resource) {
+    batchResources = s.batchSharingResources;
+    if (resource && !batchResources) {
       loadCollaborators();
       loadOrCreatePublicLink();
     }
@@ -77,28 +80,53 @@
   }
 
   async function handleShare() {
-    if (!resource || !recipientInput.trim()) return;
+    if (!recipientInput.trim()) return;
     isSharing = true;
     error = '';
     message = '';
 
     try {
-      const res = await apiRequest('/shares', {
-        method: 'POST',
-        body: JSON.stringify({
-          resourceType: resource.type,
-          resourceId: resource.item.id,
-          recipientEmailOrUsername: recipientInput.trim(),
-          permission: selectedPermission,
-          message: shareMessage || undefined,
-        }),
-      });
+      if (batchResources && batchResources.length > 0) {
+        // Batch sharing
+        const items = batchResources.map((r) => ({
+          resourceType: r.type,
+          resourceId: r.item.id,
+        }));
 
-      message = res.message || 'Shared successfully';
-      recipientInput = '';
-      shareMessage = '';
-      searchResults = [];
-      await loadCollaborators();
+        const res = await apiRequest('/shares/batch', {
+          method: 'POST',
+          body: JSON.stringify({
+            items,
+            recipientEmailOrUsername: recipientInput.trim(),
+            permission: selectedPermission,
+            message: shareMessage || undefined,
+          }),
+        });
+
+        message = res.message || `Successfully shared ${items.length} items`;
+        recipientInput = '';
+        shareMessage = '';
+        searchResults = [];
+        setTimeout(() => close(), 1500);
+      } else if (resource) {
+        // Single resource sharing
+        const res = await apiRequest('/shares', {
+          method: 'POST',
+          body: JSON.stringify({
+            resourceType: resource.type,
+            resourceId: resource.item.id,
+            recipientEmailOrUsername: recipientInput.trim(),
+            permission: selectedPermission,
+            message: shareMessage || undefined,
+          }),
+        });
+
+        message = res.message || 'Shared successfully';
+        recipientInput = '';
+        shareMessage = '';
+        searchResults = [];
+        await loadCollaborators();
+      }
     } catch (err: any) {
       error = err.message || 'Failed to share';
     } finally {
@@ -124,21 +152,39 @@
 
   function close() {
     selectionStore.getState().setSharingResource(null);
+    selectionStore.getState().setBatchSharingResources(null);
   }
 </script>
 
-{#if resource}
+{#if resource || (batchResources && batchResources.length > 0)}
   <div class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
     <div class="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
       <!-- Header -->
       <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-        <div>
-          <h3 class="font-bold text-base text-slate-900 dark:text-white">
-            Share "{resource.item.name}"
-          </h3>
-          <p class="text-xs text-slate-500 mt-0.5">
-            Native sharing: collaborators access the same Cloudflare R2 object with zero duplicate storage.
-          </p>
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-950/60 flex items-center justify-center text-blue-600 shrink-0">
+            {#if batchResources}
+              <Layers class="w-5 h-5" />
+            {:else}
+              <UserPlus class="w-5 h-5" />
+            {/if}
+          </div>
+          <div>
+            <h3 class="font-bold text-base text-slate-900 dark:text-white">
+              {#if batchResources}
+                Share {batchResources.length} Selected Items
+              {:else}
+                Share "{resource?.item.name}"
+              {/if}
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5">
+              {#if batchResources}
+                Grant simultaneous collaborative access to all selected files & folders.
+              {:else}
+                Native sharing: collaborators access the same Cloudflare R2 object with zero duplicate storage.
+              {/if}
+            </p>
+          </div>
         </div>
 
         <button onclick={close} class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">

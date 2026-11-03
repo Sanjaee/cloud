@@ -257,5 +257,52 @@ export const fileRoutes = new Elysia({ prefix: '/files' })
       params: t.Object({ fileId: t.String({ format: 'uuid' }) }),
       detail: { tags: ['Files'], summary: 'Move file to trash' },
     }
+  )
+
+  // 7. Batch move files and folders to trash
+  .post(
+    '/batch-delete',
+    async ({ currentUser, body }: any) => {
+      if (!currentUser) throw new AppError(401, 'UNAUTHORIZED', 'Authentication required');
+
+      const fileIds: string[] = body.fileIds || [];
+      const folderIds: string[] = body.folderIds || [];
+
+      let deletedFilesCount = 0;
+      let deletedFoldersCount = 0;
+
+      for (const fileId of fileIds) {
+        try {
+          const perm = await PermissionEngine.resolveFilePermission(currentUser.id, fileId);
+          if (perm.hasAccess && perm.isOwner) {
+            await FileLifecycleService.softDeleteFile(fileId);
+            deletedFilesCount++;
+          }
+        } catch {}
+      }
+
+      for (const folderId of folderIds) {
+        try {
+          const perm = await PermissionEngine.resolveFolderPermission(currentUser.id, folderId);
+          if (perm.hasAccess && perm.isOwner) {
+            await FileLifecycleService.softDeleteFolder(folderId);
+            deletedFoldersCount++;
+          }
+        } catch {}
+      }
+
+      return {
+        success: true,
+        message: `${deletedFilesCount} file(s) and ${deletedFoldersCount} folder(s) moved to trash`,
+        data: { deletedFilesCount, deletedFoldersCount },
+      };
+    },
+    {
+      body: t.Object({
+        fileIds: t.Optional(t.Array(t.String({ format: 'uuid' }))),
+        folderIds: t.Optional(t.Array(t.String({ format: 'uuid' }))),
+      }),
+      detail: { tags: ['Files'], summary: 'Batch move files and folders to trash' },
+    }
   );
 

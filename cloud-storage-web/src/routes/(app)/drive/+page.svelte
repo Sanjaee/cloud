@@ -22,6 +22,10 @@
     UploadCloud,
     FolderPlus,
     CornerUpLeft,
+    Check,
+    CheckSquare,
+    Layers,
+    X,
   } from 'lucide-svelte';
   import { onMount, onDestroy } from 'svelte';
   import type { FileItem, FolderItem, BreadcrumbItem } from '$lib/api/types';
@@ -33,6 +37,9 @@
   let isLoading = $state(true);
   let isDragOver = $state(false);
   let viewMode = $state('grid');
+  let selectedFileIds = $state<Set<string>>(new Set());
+  let selectedFolderIds = $state<Set<string>>(new Set());
+  let isBatchDeleting = $state(false);
 
   // Context Menu State
   let activeMenu = $state<{
@@ -44,7 +51,77 @@
 
   selectionStore.subscribe((s) => {
     viewMode = s.viewMode;
+    selectedFileIds = s.selectedFileIds;
+    selectedFolderIds = s.selectedFolderIds;
   });
+
+  const totalSelectedCount = $derived(selectedFileIds.size + selectedFolderIds.size);
+
+  function toggleFile(id: string, e?: MouseEvent) {
+    if (e) e.stopPropagation();
+    selectionStore.getState().toggleFileSelection(id, true);
+  }
+
+  function toggleFolder(id: string, e?: MouseEvent) {
+    if (e) e.stopPropagation();
+    selectionStore.getState().toggleFolderSelection(id, true);
+  }
+
+  function handleSelectAll() {
+    const allFileIds = files.map((f) => f.id);
+    const allFolderIds = folders.map((fol) => fol.id);
+    if (
+      selectedFileIds.size === allFileIds.length &&
+      selectedFolderIds.size === allFolderIds.length &&
+      allFileIds.length + allFolderIds.length > 0
+    ) {
+      selectionStore.getState().clearSelection();
+    } else {
+      selectionStore.getState().selectAll(allFileIds, allFolderIds);
+    }
+  }
+
+  async function handleBatchDelete() {
+    if (totalSelectedCount === 0) return;
+    if (!confirm(`Are you sure you want to move ${totalSelectedCount} item(s) to trash?`)) return;
+
+    isBatchDeleting = true;
+    try {
+      await apiRequest('/files/batch-delete', {
+        method: 'POST',
+        body: JSON.stringify({
+          fileIds: Array.from(selectedFileIds),
+          folderIds: Array.from(selectedFolderIds),
+        }),
+      });
+      selectionStore.getState().clearSelection();
+      await loadData(currentFolderId);
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete selected items');
+    } finally {
+      isBatchDeleting = false;
+    }
+  }
+
+  function handleBatchShare() {
+    if (totalSelectedCount === 0) return;
+
+    const items: Array<{ type: 'file' | 'folder'; item: any }> = [];
+    for (const id of selectedFileIds) {
+      const f = files.find((file) => file.id === id);
+      if (f) items.push({ type: 'file', item: f });
+    }
+    for (const id of selectedFolderIds) {
+      const fol = folders.find((folder) => folder.id === id);
+      if (fol) items.push({ type: 'folder', item: fol });
+    }
+
+    if (items.length === 1) {
+      selectionStore.getState().setSharingResource(items[0]);
+    } else {
+      selectionStore.getState().setBatchSharingResources(items);
+    }
+  }
 
   async function loadData(folderId: string | null = null) {
     currentFolderId = folderId;
