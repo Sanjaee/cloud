@@ -79,7 +79,7 @@
 
   async function handleGoogleMfaVerify(e?: Event) {
     if (e) e.preventDefault();
-    const cleanCode = mfaCode.replace(/[\s-]+/g, '').trim();
+    const cleanCode = mfaCode.trim();
     if (!cleanCode) {
       error = 'Harap masukkan 6-digit kode TOTP atau Kode Cadangan (Backup Code)';
       return;

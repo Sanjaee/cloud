@@ -3,7 +3,7 @@ import { db } from '../../infrastructure/database/client';
 import { users, userProfiles, sessions, emailVerificationTokens, refreshTokens, mfaCredentials, securityEvents } from '../../database/schema';
 import { eq, and, gt } from 'drizzle-orm';
 import { AppError } from '../../middleware/error-handler';
-import { hashToken, authPlugin, invalidateSessionCache } from '../../middleware/authentication';
+import { hashToken, matchBackupCode, authPlugin, invalidateSessionCache } from '../../middleware/authentication';
 import { APP_CONSTANTS } from '../../config/constants';
 import { authenticator } from 'otplib';
 import { GoogleOAuthService } from './google-oauth.service';
@@ -188,12 +188,11 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 
       // 1. Try TOTP check (with window [2, 2])
       authenticator.options = { window: [2, 2] };
-      let isValid = authenticator.check(cleanCode, mfa.secret.replace(/\s+/g, ''));
+      let isValid = /^\d{6}$/.test(cleanCode) && authenticator.check(cleanCode, mfa.secret.replace(/\s+/g, ''));
 
       // 2. If not valid TOTP, check if it matches any active backup recovery code
       if (!isValid && mfa.backupCodesHash && mfa.backupCodesHash.length > 0) {
-        const hashedCode = await hashToken(cleanCode.toUpperCase());
-        const backupIdx = (mfa.backupCodesHash as string[]).indexOf(hashedCode);
+        const backupIdx = await matchBackupCode(code, mfa.backupCodesHash);
         if (backupIdx !== -1) {
           isValid = true;
           // Burn the single-use backup recovery code
@@ -486,12 +485,11 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 
         authenticator.options = { window: [2, 2] };
         const cleanMfaCode = String(mfaCode).replace(/[\s-]+/g, '').trim();
-        let isValidTotp = authenticator.check(cleanMfaCode, mfa.secret.replace(/\s+/g, ''));
+        let isValidTotp = /^\d{6}$/.test(cleanMfaCode) && authenticator.check(cleanMfaCode, mfa.secret.replace(/\s+/g, ''));
 
         // If TOTP check failed, check if it's a valid backup recovery code
         if (!isValidTotp && mfa.backupCodesHash && mfa.backupCodesHash.length > 0) {
-          const hashedCode = await hashToken(cleanMfaCode.toUpperCase());
-          const backupIdx = (mfa.backupCodesHash as string[]).indexOf(hashedCode);
+          const backupIdx = await matchBackupCode(mfaCode, mfa.backupCodesHash);
           if (backupIdx !== -1) {
             isValidTotp = true;
             // Remove the used single-use backup code

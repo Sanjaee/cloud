@@ -150,6 +150,7 @@
       const res = await apiRequest('/mfa/enable', {
         method: 'POST',
         body: JSON.stringify({
+          code: totpCode.trim(),
           totpCode: totpCode.trim(),
         }),
       });
@@ -170,14 +171,20 @@
 
   async function handleDisableMfa() {
     disableError = '';
+    if (!disableTotpCode && !disablePassword) {
+      disableError = 'Masukkan kode TOTP dari ponsel, backup code, atau password akun Anda';
+      return;
+    }
+
     isDisablingMfa = true;
 
     try {
       await apiRequest('/mfa/disable', {
         method: 'POST',
         body: JSON.stringify({
-          password: disablePassword || undefined,
+          code: disableTotpCode ? disableTotpCode.trim() : undefined,
           totpCode: disableTotpCode ? disableTotpCode.trim() : undefined,
+          password: disablePassword.trim() || undefined,
         }),
       });
 
@@ -185,11 +192,11 @@
       showDisableModal = false;
       disablePassword = '';
       disableTotpCode = '';
-      mfaMessage = '2FA has been disabled.';
+      mfaMessage = 'Two-Factor Authentication berhasil dinonaktifkan.';
       backupCodes = [];
       await loadSecurityData();
     } catch (err: any) {
-      disableError = err.message || 'Failed to disable 2FA';
+      disableError = err.message || 'Gagal menonaktifkan 2FA';
     } finally {
       isDisablingMfa = false;
     }
@@ -673,16 +680,32 @@
           {/if}
 
           <p class="text-xs text-zinc-400 mb-3">
-            Masukkan kode TOTP dari ponsel atau backup code untuk konfirmasi nonaktifkan:
+            Masukkan kode TOTP dari ponsel, backup code, atau password akun untuk menonaktifkan 2FA:
           </p>
 
           <div class="space-y-3 mb-4">
             <div>
+              <label for="disable-code" class="block text-[11px] font-medium text-zinc-300 mb-1">
+                Kode TOTP atau Backup Code:
+              </label>
               <input
                 id="disable-code"
                 type="text"
                 bind:value={disableTotpCode}
-                placeholder="123456 atau ABCD-1234"
+                placeholder="123456 atau 62FA-EA8D"
+                class="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-zinc-700"
+              />
+            </div>
+
+            <div>
+              <label for="disable-password" class="block text-[11px] font-medium text-zinc-300 mb-1">
+                Password Akun (opsional jika menggunakan kode di atas):
+              </label>
+              <input
+                id="disable-password"
+                type="password"
+                bind:value={disablePassword}
+                placeholder="••••••••"
                 class="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-zinc-700"
               />
             </div>

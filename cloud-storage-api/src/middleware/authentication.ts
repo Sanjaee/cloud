@@ -15,6 +15,39 @@ export async function hashToken(token: string): Promise<string> {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+/**
+ * Robustly matches an input backup code against hashed backup codes stored in the database.
+ * Tests multiple normalized formats (hyphenated, unhyphenated, trimmed, uppercase)
+ * to guarantee backwards compatibility and forgiving user input.
+ */
+export async function matchBackupCode(
+  inputCode: string,
+  backupCodesHash?: string[] | null
+): Promise<number> {
+  if (!inputCode || !backupCodesHash || backupCodesHash.length === 0) return -1;
+
+  const raw = String(inputCode).trim();
+  const clean = raw.replace(/[\s-]+/g, '').toUpperCase();
+  const hyphenated = clean.length === 8 ? `${clean.slice(0, 4)}-${clean.slice(4)}` : clean;
+
+  const candidates = Array.from(new Set([
+    raw.toUpperCase(),
+    clean,
+    hyphenated,
+    raw,
+  ]));
+
+  for (const candidate of candidates) {
+    const hash = await hashToken(candidate);
+    const idx = backupCodesHash.indexOf(hash);
+    if (idx !== -1) {
+      return idx;
+    }
+  }
+
+  return -1;
+}
+
 export interface AuthenticatedUser {
   id: string;
   email: string;
