@@ -1,0 +1,3049 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "REA Cloud Storage API",
+    "description": "Production-grade REST API for Multi-User Cloud Storage SaaS platform. Supports Web and Mobile clients with Argon2id, Cloudflare R2 direct uploads, and native reference-based sharing.",
+    "version": "1.0.0"
+  },
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "Authentication and session management"
+    },
+    {
+      "name": "Users",
+      "description": "User profile and quota information"
+    },
+    {
+      "name": "Files",
+      "description": "File CRUD, metadata, and lifecycle"
+    },
+    {
+      "name": "Folders",
+      "description": "Hierarchical folder management"
+    },
+    {
+      "name": "Uploads",
+      "description": "Direct Cloudflare R2 presigned upload sessions"
+    },
+    {
+      "name": "Downloads",
+      "description": "Authorized presigned download and preview URLs"
+    },
+    {
+      "name": "Sharing",
+      "description": "Native reference-based file & folder sharing"
+    },
+    {
+      "name": "Shortcuts",
+      "description": "Google Drive-style reference shortcuts"
+    },
+    {
+      "name": "Public Links",
+      "description": "Password and expiring public sharing links"
+    },
+    {
+      "name": "Trash",
+      "description": "Soft-deletion, restoration, and permanent R2 deletion"
+    },
+    {
+      "name": "Quotas",
+      "description": "Physical object storage quotas and statistics"
+    },
+    {
+      "name": "Security",
+      "description": "Password reset, security events, and audit logs"
+    },
+    {
+      "name": "MFA",
+      "description": "Multi-Factor Authentication (TOTP)"
+    }
+  ],
+  "paths": {
+    "/health/": {
+      "get": {
+        "operationId": "getHealth",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "getHealthReady",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "parameters": [],
+        "operationId": "postApiV1AuthRegister",
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Register a new user account",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email",
+                  "username",
+                  "password"
+                ],
+                "properties": {
+                  "email": {
+                    "format": "email",
+                    "type": "string"
+                  },
+                  "username": {
+                    "minLength": 3,
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  "password": {
+                    "minLength": 8,
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email",
+                  "username",
+                  "password"
+                ],
+                "properties": {
+                  "email": {
+                    "format": "email",
+                    "type": "string"
+                  },
+                  "username": {
+                    "minLength": 3,
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  "password": {
+                    "minLength": 8,
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email",
+                  "username",
+                  "password"
+                ],
+                "properties": {
+                  "email": {
+                    "format": "email",
+                    "type": "string"
+                  },
+                  "username": {
+                    "minLength": 3,
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  "password": {
+                    "minLength": 8,
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "parameters": [],
+        "operationId": "postApiV1AuthLogin",
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Log in with credentials",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email",
+                  "password"
+                ],
+                "properties": {
+                  "email": {
+                    "format": "email",
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "mfaCode": {
+                    "type": "string"
+                  },
+                  "deviceId": {
+                    "type": "string"
+                  },
+                  "deviceName": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email",
+                  "password"
+                ],
+                "properties": {
+                  "email": {
+                    "format": "email",
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "mfaCode": {
+                    "type": "string"
+                  },
+                  "deviceId": {
+                    "type": "string"
+                  },
+                  "deviceName": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email",
+                  "password"
+                ],
+                "properties": {
+                  "email": {
+                    "format": "email",
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "mfaCode": {
+                    "type": "string"
+                  },
+                  "deviceId": {
+                    "type": "string"
+                  },
+                  "deviceName": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "parameters": [],
+        "operationId": "postApiV1AuthRefresh",
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Rotate refresh token (Mobile)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "refreshToken"
+                ],
+                "properties": {
+                  "refreshToken": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "refreshToken"
+                ],
+                "properties": {
+                  "refreshToken": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "refreshToken"
+                ],
+                "properties": {
+                  "refreshToken": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "postApiV1AuthLogout",
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Log out current session",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/auth/logout-all": {
+      "post": {
+        "operationId": "postApiV1AuthLogout-all",
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Log out all devices and revoke tokens",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/auth/verify-email": {
+      "post": {
+        "parameters": [],
+        "operationId": "postApiV1AuthVerify-email",
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Verify email with single-use token",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "token"
+                ],
+                "properties": {
+                  "token": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "token"
+                ],
+                "properties": {
+                  "token": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "token"
+                ],
+                "properties": {
+                  "token": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/users/me": {
+      "get": {
+        "operationId": "getApiV1UsersMe",
+        "tags": [
+          "Users"
+        ],
+        "summary": "Get current user profile and storage quota",
+        "responses": {
+          "200": {}
+        }
+      },
+      "delete": {
+        "parameters": [],
+        "operationId": "deleteApiV1UsersMe",
+        "tags": [
+          "Users"
+        ],
+        "summary": "Delete user account with password confirmation",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "password"
+                ],
+                "properties": {
+                  "password": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "password"
+                ],
+                "properties": {
+                  "password": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "password"
+                ],
+                "properties": {
+                  "password": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/users/profile": {
+      "patch": {
+        "parameters": [],
+        "operationId": "patchApiV1UsersProfile",
+        "tags": [
+          "Users"
+        ],
+        "summary": "Update profile details",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "displayName": {
+                    "maxLength": 128,
+                    "type": "string"
+                  },
+                  "bio": {
+                    "maxLength": 500,
+                    "type": "string"
+                  },
+                  "avatarUrl": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "displayName": {
+                    "maxLength": 128,
+                    "type": "string"
+                  },
+                  "bio": {
+                    "maxLength": 500,
+                    "type": "string"
+                  },
+                  "avatarUrl": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "displayName": {
+                    "maxLength": 128,
+                    "type": "string"
+                  },
+                  "bio": {
+                    "maxLength": 500,
+                    "type": "string"
+                  },
+                  "avatarUrl": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/users/search": {
+      "get": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "q",
+            "required": true
+          }
+        ],
+        "operationId": "getApiV1UsersSearch",
+        "tags": [
+          "Users"
+        ],
+        "summary": "Search users by email or username for sharing",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/sessions/": {
+      "get": {
+        "operationId": "getApiV1Sessions",
+        "tags": [
+          "Sessions"
+        ],
+        "summary": "List all active user sessions and devices",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/sessions/{sessionId}": {
+      "delete": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "sessionId",
+            "required": true
+          }
+        ],
+        "operationId": "deleteApiV1SessionsBySessionId",
+        "tags": [
+          "Sessions"
+        ],
+        "summary": "Revoke a specific active session",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/sessions/revoke-others": {
+      "post": {
+        "operationId": "postApiV1SessionsRevoke-others",
+        "tags": [
+          "Sessions"
+        ],
+        "summary": "Revoke all sessions except the current active session",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/security/change-password": {
+      "post": {
+        "parameters": [],
+        "operationId": "postApiV1SecurityChange-password",
+        "tags": [
+          "Security"
+        ],
+        "summary": "Change password with existing password confirmation",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "currentPassword",
+                  "newPassword"
+                ],
+                "properties": {
+                  "currentPassword": {
+                    "type": "string"
+                  },
+                  "newPassword": {
+                    "minLength": 8,
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "currentPassword",
+                  "newPassword"
+                ],
+                "properties": {
+                  "currentPassword": {
+                    "type": "string"
+                  },
+                  "newPassword": {
+                    "minLength": 8,
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "currentPassword",
+                  "newPassword"
+                ],
+                "properties": {
+                  "currentPassword": {
+                    "type": "string"
+                  },
+                  "newPassword": {
+                    "minLength": 8,
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/security/forgot-password": {
+      "post": {
+        "parameters": [],
+        "operationId": "postApiV1SecurityForgot-password",
+        "tags": [
+          "Security"
+        ],
+        "summary": "Request password reset email",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email"
+                ],
+                "properties": {
+                  "email": {
+                    "format": "email",
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email"
+                ],
+                "properties": {
+                  "email": {
+                    "format": "email",
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email"
+                ],
+                "properties": {
+                  "email": {
+                    "format": "email",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/security/reset-password": {
+      "post": {
+        "parameters": [],
+        "operationId": "postApiV1SecurityReset-password",
+        "tags": [
+          "Security"
+        ],
+        "summary": "Reset password with token",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "token",
+                  "newPassword"
+                ],
+                "properties": {
+                  "token": {
+                    "type": "string"
+                  },
+                  "newPassword": {
+                    "minLength": 8,
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "token",
+                  "newPassword"
+                ],
+                "properties": {
+                  "token": {
+                    "type": "string"
+                  },
+                  "newPassword": {
+                    "minLength": 8,
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "token",
+                  "newPassword"
+                ],
+                "properties": {
+                  "token": {
+                    "type": "string"
+                  },
+                  "newPassword": {
+                    "minLength": 8,
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/security/events": {
+      "get": {
+        "operationId": "getApiV1SecurityEvents",
+        "tags": [
+          "Security"
+        ],
+        "summary": "Get recent security events and login history",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/mfa/status": {
+      "get": {
+        "operationId": "getApiV1MfaStatus",
+        "tags": [
+          "MFA"
+        ],
+        "summary": "Check if MFA is enabled",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/mfa/setup": {
+      "post": {
+        "operationId": "postApiV1MfaSetup",
+        "tags": [
+          "MFA"
+        ],
+        "summary": "Generate TOTP secret and QR code for setup",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/mfa/enable": {
+      "post": {
+        "parameters": [],
+        "operationId": "postApiV1MfaEnable",
+        "tags": [
+          "MFA"
+        ],
+        "summary": "Confirm TOTP code and enable MFA",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "code"
+                ],
+                "properties": {
+                  "code": {
+                    "minLength": 6,
+                    "maxLength": 6,
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "code"
+                ],
+                "properties": {
+                  "code": {
+                    "minLength": 6,
+                    "maxLength": 6,
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "code"
+                ],
+                "properties": {
+                  "code": {
+                    "minLength": 6,
+                    "maxLength": 6,
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/mfa/disable": {
+      "post": {
+        "parameters": [],
+        "operationId": "postApiV1MfaDisable",
+        "tags": [
+          "MFA"
+        ],
+        "summary": "Disable MFA with password and TOTP confirmation",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "password",
+                  "code"
+                ],
+                "properties": {
+                  "password": {
+                    "type": "string"
+                  },
+                  "code": {
+                    "minLength": 6,
+                    "maxLength": 6,
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "password",
+                  "code"
+                ],
+                "properties": {
+                  "password": {
+                    "type": "string"
+                  },
+                  "code": {
+                    "minLength": 6,
+                    "maxLength": 6,
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "password",
+                  "code"
+                ],
+                "properties": {
+                  "password": {
+                    "type": "string"
+                  },
+                  "code": {
+                    "minLength": 6,
+                    "maxLength": 6,
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/files/": {
+      "get": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "query",
+            "name": "folderId",
+            "required": false
+          }
+        ],
+        "operationId": "getApiV1Files",
+        "tags": [
+          "Files"
+        ],
+        "summary": "List files in a folder or root",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/files/{fileId}": {
+      "get": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "fileId",
+            "required": true
+          }
+        ],
+        "operationId": "getApiV1FilesByFileId",
+        "tags": [
+          "Files"
+        ],
+        "summary": "Get file metadata and permissions",
+        "responses": {
+          "200": {}
+        }
+      },
+      "delete": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "fileId",
+            "required": true
+          }
+        ],
+        "operationId": "deleteApiV1FilesByFileId",
+        "tags": [
+          "Files"
+        ],
+        "summary": "Move file to trash",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/files/{fileId}/rename": {
+      "patch": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "fileId",
+            "required": true
+          }
+        ],
+        "operationId": "patchApiV1FilesByFileIdRename",
+        "tags": [
+          "Files"
+        ],
+        "summary": "Rename file",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/files/{fileId}/move": {
+      "patch": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "fileId",
+            "required": true
+          }
+        ],
+        "operationId": "patchApiV1FilesByFileIdMove",
+        "tags": [
+          "Files"
+        ],
+        "summary": "Move file to a different folder",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "targetFolderId"
+                ],
+                "properties": {
+                  "targetFolderId": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "targetFolderId"
+                ],
+                "properties": {
+                  "targetFolderId": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "targetFolderId"
+                ],
+                "properties": {
+                  "targetFolderId": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/files/{fileId}/star": {
+      "patch": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "fileId",
+            "required": true
+          }
+        ],
+        "operationId": "patchApiV1FilesByFileIdStar",
+        "tags": [
+          "Files"
+        ],
+        "summary": "Star or unstar file",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "isStarred"
+                ],
+                "properties": {
+                  "isStarred": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "isStarred"
+                ],
+                "properties": {
+                  "isStarred": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "isStarred"
+                ],
+                "properties": {
+                  "isStarred": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/folders/": {
+      "post": {
+        "parameters": [],
+        "operationId": "postApiV1Folders",
+        "tags": [
+          "Folders"
+        ],
+        "summary": "Create a new folder",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "parentId": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "parentId": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "parentId": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {}
+        }
+      },
+      "get": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "query",
+            "name": "parentId",
+            "required": false
+          }
+        ],
+        "operationId": "getApiV1Folders",
+        "tags": [
+          "Folders"
+        ],
+        "summary": "List folders in a directory",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/folders/{folderId}/breadcrumbs": {
+      "get": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "folderId",
+            "required": true
+          }
+        ],
+        "operationId": "getApiV1FoldersByFolderIdBreadcrumbs",
+        "tags": [
+          "Folders"
+        ],
+        "summary": "Get folder breadcrumb path",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/folders/{folderId}/rename": {
+      "patch": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "folderId",
+            "required": true
+          }
+        ],
+        "operationId": "patchApiV1FoldersByFolderIdRename",
+        "tags": [
+          "Folders"
+        ],
+        "summary": "Rename folder",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/folders/{folderId}/move": {
+      "patch": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "folderId",
+            "required": true
+          }
+        ],
+        "operationId": "patchApiV1FoldersByFolderIdMove",
+        "tags": [
+          "Folders"
+        ],
+        "summary": "Move folder to new parent",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "targetParentId"
+                ],
+                "properties": {
+                  "targetParentId": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "targetParentId"
+                ],
+                "properties": {
+                  "targetParentId": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "targetParentId"
+                ],
+                "properties": {
+                  "targetParentId": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/folders/{folderId}/star": {
+      "patch": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "folderId",
+            "required": true
+          }
+        ],
+        "operationId": "patchApiV1FoldersByFolderIdStar",
+        "tags": [
+          "Folders"
+        ],
+        "summary": "Star or unstar folder",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "isStarred"
+                ],
+                "properties": {
+                  "isStarred": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "isStarred"
+                ],
+                "properties": {
+                  "isStarred": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "isStarred"
+                ],
+                "properties": {
+                  "isStarred": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/folders/{folderId}": {
+      "delete": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "folderId",
+            "required": true
+          }
+        ],
+        "operationId": "deleteApiV1FoldersByFolderId",
+        "tags": [
+          "Folders"
+        ],
+        "summary": "Move folder to trash",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/uploads/initiate": {
+      "post": {
+        "parameters": [],
+        "operationId": "postApiV1UploadsInitiate",
+        "tags": [
+          "Uploads"
+        ],
+        "summary": "Initiate direct R2 upload session",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "filename",
+                  "mimeType",
+                  "size"
+                ],
+                "properties": {
+                  "filename": {
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "mimeType": {
+                    "type": "string"
+                  },
+                  "size": {
+                    "minimum": 1,
+                    "type": "number"
+                  },
+                  "folderId": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "checksum": {
+                    "type": "string"
+                  },
+                  "idempotencyKey": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "filename",
+                  "mimeType",
+                  "size"
+                ],
+                "properties": {
+                  "filename": {
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "mimeType": {
+                    "type": "string"
+                  },
+                  "size": {
+                    "minimum": 1,
+                    "type": "number"
+                  },
+                  "folderId": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "checksum": {
+                    "type": "string"
+                  },
+                  "idempotencyKey": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "filename",
+                  "mimeType",
+                  "size"
+                ],
+                "properties": {
+                  "filename": {
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "mimeType": {
+                    "type": "string"
+                  },
+                  "size": {
+                    "minimum": 1,
+                    "type": "number"
+                  },
+                  "folderId": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "checksum": {
+                    "type": "string"
+                  },
+                  "idempotencyKey": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/uploads/multipart/part-url": {
+      "post": {
+        "parameters": [],
+        "operationId": "postApiV1UploadsMultipartPart-url",
+        "tags": [
+          "Uploads"
+        ],
+        "summary": "Get presigned URL for multipart part",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "uploadSessionId",
+                  "partNumber"
+                ],
+                "properties": {
+                  "uploadSessionId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "partNumber": {
+                    "minimum": 1,
+                    "type": "number"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "uploadSessionId",
+                  "partNumber"
+                ],
+                "properties": {
+                  "uploadSessionId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "partNumber": {
+                    "minimum": 1,
+                    "type": "number"
+                  }
+                }
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "uploadSessionId",
+                  "partNumber"
+                ],
+                "properties": {
+                  "uploadSessionId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "partNumber": {
+                    "minimum": 1,
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/uploads/complete": {
+      "post": {
+        "parameters": [],
+        "operationId": "postApiV1UploadsComplete",
+        "tags": [
+          "Uploads"
+        ],
+        "summary": "Complete and verify uploaded object",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "uploadSessionId"
+                ],
+                "properties": {
+                  "uploadSessionId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "parts": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "PartNumber",
+                        "ETag"
+                      ],
+                      "properties": {
+                        "PartNumber": {
+                          "type": "number"
+                        },
+                        "ETag": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "uploadSessionId"
+                ],
+                "properties": {
+                  "uploadSessionId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "parts": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "PartNumber",
+                        "ETag"
+                      ],
+                      "properties": {
+                        "PartNumber": {
+                          "type": "number"
+                        },
+                        "ETag": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "uploadSessionId"
+                ],
+                "properties": {
+                  "uploadSessionId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "parts": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "PartNumber",
+                        "ETag"
+                      ],
+                      "properties": {
+                        "PartNumber": {
+                          "type": "number"
+                        },
+                        "ETag": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/downloads/{fileId}": {
+      "get": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "fileId",
+            "required": true
+          }
+        ],
+        "operationId": "getApiV1DownloadsByFileId",
+        "tags": [
+          "Downloads"
+        ],
+        "summary": "Get authorized presigned download URL for file",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/downloads/{fileId}/preview": {
+      "get": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "fileId",
+            "required": true
+          }
+        ],
+        "operationId": "getApiV1DownloadsByFileIdPreview",
+        "tags": [
+          "Downloads"
+        ],
+        "summary": "Get authorized presigned preview URL for file",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/shares/": {
+      "post": {
+        "parameters": [],
+        "operationId": "postApiV1Shares",
+        "tags": [
+          "Sharing"
+        ],
+        "summary": "Share an existing file or folder with another user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "resourceType",
+                  "resourceId",
+                  "recipientEmailOrUsername",
+                  "permission"
+                ],
+                "properties": {
+                  "resourceType": {
+                    "anyOf": [
+                      {
+                        "const": "file",
+                        "type": "string"
+                      },
+                      {
+                        "const": "folder",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "resourceId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "recipientEmailOrUsername": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "permission": {
+                    "anyOf": [
+                      {
+                        "const": "viewer",
+                        "type": "string"
+                      },
+                      {
+                        "const": "commenter",
+                        "type": "string"
+                      },
+                      {
+                        "const": "editor",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "expiresAt": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "message": {
+                    "maxLength": 500,
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "resourceType",
+                  "resourceId",
+                  "recipientEmailOrUsername",
+                  "permission"
+                ],
+                "properties": {
+                  "resourceType": {
+                    "anyOf": [
+                      {
+                        "const": "file",
+                        "type": "string"
+                      },
+                      {
+                        "const": "folder",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "resourceId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "recipientEmailOrUsername": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "permission": {
+                    "anyOf": [
+                      {
+                        "const": "viewer",
+                        "type": "string"
+                      },
+                      {
+                        "const": "commenter",
+                        "type": "string"
+                      },
+                      {
+                        "const": "editor",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "expiresAt": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "message": {
+                    "maxLength": 500,
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "resourceType",
+                  "resourceId",
+                  "recipientEmailOrUsername",
+                  "permission"
+                ],
+                "properties": {
+                  "resourceType": {
+                    "anyOf": [
+                      {
+                        "const": "file",
+                        "type": "string"
+                      },
+                      {
+                        "const": "folder",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "resourceId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "recipientEmailOrUsername": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "permission": {
+                    "anyOf": [
+                      {
+                        "const": "viewer",
+                        "type": "string"
+                      },
+                      {
+                        "const": "commenter",
+                        "type": "string"
+                      },
+                      {
+                        "const": "editor",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "expiresAt": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "message": {
+                    "maxLength": 500,
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/shares/{resourceType}/{resourceId}/collaborators": {
+      "get": {
+        "parameters": [
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "file",
+                  "type": "string"
+                },
+                {
+                  "const": "folder",
+                  "type": "string"
+                }
+              ]
+            },
+            "in": "path",
+            "name": "resourceType",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "resourceId",
+            "required": true
+          }
+        ],
+        "operationId": "getApiV1SharesByResourceTypeByResourceIdCollaborators",
+        "tags": [
+          "Sharing"
+        ],
+        "summary": "List collaborators with permissions on resource",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/shares/{resourceType}/{resourceId}/collaborators/{userId}": {
+      "delete": {
+        "parameters": [
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "file",
+                  "type": "string"
+                },
+                {
+                  "const": "folder",
+                  "type": "string"
+                }
+              ]
+            },
+            "in": "path",
+            "name": "resourceType",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "resourceId",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "userId",
+            "required": true
+          }
+        ],
+        "operationId": "deleteApiV1SharesByResourceTypeByResourceIdCollaboratorsByUserId",
+        "tags": [
+          "Sharing"
+        ],
+        "summary": "Revoke collaborator access",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/shares/shared-with-me": {
+      "get": {
+        "operationId": "getApiV1SharesShared-with-me",
+        "tags": [
+          "Sharing"
+        ],
+        "summary": "Get all files and folders shared with me",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/shares/shared-by-me": {
+      "get": {
+        "operationId": "getApiV1SharesShared-by-me",
+        "tags": [
+          "Sharing"
+        ],
+        "summary": "Get all resources current user has shared with others",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/shortcuts/": {
+      "post": {
+        "parameters": [],
+        "operationId": "postApiV1Shortcuts",
+        "tags": [
+          "Shortcuts"
+        ],
+        "summary": "Add a shortcut to My Drive for shared file or folder",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "targetType",
+                  "targetId"
+                ],
+                "properties": {
+                  "targetType": {
+                    "anyOf": [
+                      {
+                        "const": "file",
+                        "type": "string"
+                      },
+                      {
+                        "const": "folder",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "targetId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "parentFolderId": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "targetType",
+                  "targetId"
+                ],
+                "properties": {
+                  "targetType": {
+                    "anyOf": [
+                      {
+                        "const": "file",
+                        "type": "string"
+                      },
+                      {
+                        "const": "folder",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "targetId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "parentFolderId": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "targetType",
+                  "targetId"
+                ],
+                "properties": {
+                  "targetType": {
+                    "anyOf": [
+                      {
+                        "const": "file",
+                        "type": "string"
+                      },
+                      {
+                        "const": "folder",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "targetId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "parentFolderId": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {}
+        }
+      },
+      "get": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "query",
+            "name": "parentFolderId",
+            "required": false
+          }
+        ],
+        "operationId": "getApiV1Shortcuts",
+        "tags": [
+          "Shortcuts"
+        ],
+        "summary": "List shortcuts in folder",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/shortcuts/{shortcutId}": {
+      "delete": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "shortcutId",
+            "required": true
+          }
+        ],
+        "operationId": "deleteApiV1ShortcutsByShortcutId",
+        "tags": [
+          "Shortcuts"
+        ],
+        "summary": "Delete a shortcut",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/public-links/": {
+      "post": {
+        "parameters": [],
+        "operationId": "postApiV1Public-links",
+        "tags": [
+          "Public Links"
+        ],
+        "summary": "Create a secure public sharing link",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "resourceType",
+                  "resourceId"
+                ],
+                "properties": {
+                  "resourceType": {
+                    "anyOf": [
+                      {
+                        "const": "file",
+                        "type": "string"
+                      },
+                      {
+                        "const": "folder",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "resourceId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "permission": {
+                    "anyOf": [
+                      {
+                        "const": "viewer",
+                        "type": "string"
+                      },
+                      {
+                        "const": "commenter",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "allowDownload": {
+                    "type": "boolean"
+                  },
+                  "expiresAt": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "resourceType",
+                  "resourceId"
+                ],
+                "properties": {
+                  "resourceType": {
+                    "anyOf": [
+                      {
+                        "const": "file",
+                        "type": "string"
+                      },
+                      {
+                        "const": "folder",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "resourceId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "permission": {
+                    "anyOf": [
+                      {
+                        "const": "viewer",
+                        "type": "string"
+                      },
+                      {
+                        "const": "commenter",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "allowDownload": {
+                    "type": "boolean"
+                  },
+                  "expiresAt": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "resourceType",
+                  "resourceId"
+                ],
+                "properties": {
+                  "resourceType": {
+                    "anyOf": [
+                      {
+                        "const": "file",
+                        "type": "string"
+                      },
+                      {
+                        "const": "folder",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "resourceId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "permission": {
+                    "anyOf": [
+                      {
+                        "const": "viewer",
+                        "type": "string"
+                      },
+                      {
+                        "const": "commenter",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "allowDownload": {
+                    "type": "boolean"
+                  },
+                  "expiresAt": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/public-links/access/{token}": {
+      "post": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "token",
+            "required": true
+          }
+        ],
+        "operationId": "postApiV1Public-linksAccessByToken",
+        "tags": [
+          "Public Links"
+        ],
+        "summary": "Access shared resource via public token",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "password": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "password": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "password": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/public-links/{linkId}": {
+      "delete": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "linkId",
+            "required": true
+          }
+        ],
+        "operationId": "deleteApiV1Public-linksByLinkId",
+        "tags": [
+          "Public Links"
+        ],
+        "summary": "Revoke public share link",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/trash/": {
+      "get": {
+        "operationId": "getApiV1Trash",
+        "tags": [
+          "Trash"
+        ],
+        "summary": "List all items currently in trash",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/trash/restore/{resourceType}/{resourceId}": {
+      "post": {
+        "parameters": [
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "file",
+                  "type": "string"
+                },
+                {
+                  "const": "folder",
+                  "type": "string"
+                }
+              ]
+            },
+            "in": "path",
+            "name": "resourceType",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "resourceId",
+            "required": true
+          }
+        ],
+        "operationId": "postApiV1TrashRestoreByResourceTypeByResourceId",
+        "tags": [
+          "Trash"
+        ],
+        "summary": "Restore item from trash",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/trash/permanent/{resourceType}/{resourceId}": {
+      "delete": {
+        "parameters": [
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "file",
+                  "type": "string"
+                },
+                {
+                  "const": "folder",
+                  "type": "string"
+                }
+              ]
+            },
+            "in": "path",
+            "name": "resourceType",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "resourceId",
+            "required": true
+          }
+        ],
+        "operationId": "deleteApiV1TrashPermanentByResourceTypeByResourceId",
+        "tags": [
+          "Trash"
+        ],
+        "summary": "Permanently delete item and purge R2 object",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/trash/empty": {
+      "delete": {
+        "operationId": "deleteApiV1TrashEmpty",
+        "tags": [
+          "Trash"
+        ],
+        "summary": "Empty trash permanently",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/quotas/": {
+      "get": {
+        "operationId": "getApiV1Quotas",
+        "tags": [
+          "Quotas"
+        ],
+        "summary": "Get current user storage quota and object statistics",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/notifications/": {
+      "get": {
+        "operationId": "getApiV1Notifications",
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "List user notifications and unread count",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/notifications/{notificationId}/read": {
+      "patch": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "notificationId",
+            "required": true
+          }
+        ],
+        "operationId": "patchApiV1NotificationsByNotificationIdRead",
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Mark single notification as read",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/notifications/read-all": {
+      "post": {
+        "operationId": "postApiV1NotificationsRead-all",
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Mark all user notifications as read",
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "/api/v1/audit/": {
+      "get": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "offset",
+            "required": false
+          }
+        ],
+        "operationId": "getApiV1Audit",
+        "tags": [
+          "Audit"
+        ],
+        "summary": "Get current user operational and security audit logs",
+        "responses": {
+          "200": {}
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {}
+  }
+}
