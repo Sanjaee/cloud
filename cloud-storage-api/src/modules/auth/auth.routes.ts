@@ -3,7 +3,7 @@ import { db } from '../../infrastructure/database/client';
 import { users, userProfiles, sessions, emailVerificationTokens, refreshTokens, mfaCredentials, securityEvents } from '../../database/schema';
 import { eq, and, gt } from 'drizzle-orm';
 import { AppError } from '../../middleware/error-handler';
-import { hashToken, authPlugin } from '../../middleware/authentication';
+import { hashToken, authPlugin, invalidateSessionCache } from '../../middleware/authentication';
 import { APP_CONSTANTS } from '../../config/constants';
 import { authenticator } from 'otplib';
 import { GoogleOAuthService } from './google-oauth.service';
@@ -565,6 +565,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       if (currentSessionId) {
         await db.delete(sessions).where(eq(sessions.id, currentSessionId));
       }
+      invalidateSessionCache();
       cookie[APP_CONSTANTS.SESSION_COOKIE_NAME].remove();
 
       return {
@@ -592,6 +593,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
         .set({ isRevoked: true })
         .where(eq(refreshTokens.userId, currentUser.id));
 
+      invalidateSessionCache();
       cookie[APP_CONSTANTS.SESSION_COOKIE_NAME].remove();
 
       return {

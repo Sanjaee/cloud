@@ -25,6 +25,22 @@ export interface AuthenticatedUser {
   storageUsed: number;
 }
 
+// 60-second in-memory session cache to eliminate redundant database auth queries
+interface CachedSession {
+  user: AuthenticatedUser;
+  sessionId: string;
+  cachedAt: number;
+}
+const sessionCache = new Map<string, CachedSession>();
+
+export function invalidateSessionCache(tokenHash?: string) {
+  if (tokenHash) {
+    sessionCache.delete(tokenHash);
+  } else {
+    sessionCache.clear();
+  }
+}
+
 export const authPlugin = new Elysia({ name: 'plugin:auth' })
   .use(
     jwt({
@@ -43,60 +59,93 @@ export const authPlugin = new Elysia({ name: 'plugin:auth' })
       }
     }
 
-    let userId: string | null = null;
-    let sessionId: string | null = null;
-
     if (sessionCookie) {
       const hashed = await hashToken(sessionCookie);
+
+      // Check fast in-memory cache first (avoids duplicate DB query on concurrent requests)
+      const cached = sessionCache.get(hashed);
+      if (cached && Date.now() - cached.cachedAt < 60_000) {
+        return {
+          currentUser: cached.user,
+          currentSessionId: cached.sessionId,
+        };
+      }
+
       const session = await db.query.sessions.findFirst({
         where: and(eq(sessions.tokenHash, hashed), gt(sessions.expiresAt, new Date())),
       });
 
       if (session) {
-        userId = session.userId;
-        sessionId = session.id;
-        db.update(sessions)
-          .set({ lastUsedAt: new Date() })
-          .where(eq(sessions.id, session.id))
-          .execute()
-          .catch(() => {});
-      }
-    }
+        // Throttle lastUsedAt updates: only update DB if more than 5 minutes have elapsed
+        const now = Date.now();
+        if (!session.lastUsedAt || now - session.lastUsedAt.getTime() > 5 * 60 * 1000) {
+          db.update(sessions)
+            .set({ lastUsedAt: new Date() })
+            .where(eq(sessions.id, session.id))
+            .execute()
+            .catch(() => {});
+        }
 
-    // 2. Try Mobile / API Bearer Token
-    if (!userId) {
-      const authHeader = headers['authorization'];
-      if (authHeader?.startsWith('Bearer ')) {
-        const token = authHeader.substring(7).trim();
-        const payload = (await jwt.verify(token)) as { sub?: string } | false;
-        if (payload && payload.sub) {
-          userId = payload.sub;
+        const found = await db.query.users.findFirst({
+          where: eq(users.id, session.userId),
+        });
+
+        if (found && found.status !== 'suspended') {
+          const authUser: AuthenticatedUser = {
+            id: found.id,
+            email: found.email,
+            username: found.username,
+            status: found.status,
+            emailVerifiedAt: found.emailVerifiedAt,
+            storageQuota: found.storageQuota,
+            storageUsed: found.storageUsed,
+          };
+
+          // Store in cache
+          sessionCache.set(hashed, {
+            user: authUser,
+            sessionId: session.id,
+            cachedAt: now,
+          });
+
+          return {
+            currentUser: authUser,
+            currentSessionId: session.id,
+          };
         }
       }
     }
 
-    let user: AuthenticatedUser | null = null;
-    if (userId) {
-      const found = await db.query.users.findFirst({
-        where: eq(users.id, userId),
-      });
+    // 2. Try Mobile / API Bearer Token
+    const authHeader = headers['authorization'];
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.substring(7).trim();
+      const payload = (await jwt.verify(token)) as { sub?: string } | false;
+      if (payload && payload.sub) {
+        const found = await db.query.users.findFirst({
+          where: eq(users.id, payload.sub),
+        });
 
-      if (found && found.status !== 'suspended') {
-        user = {
-          id: found.id,
-          email: found.email,
-          username: found.username,
-          status: found.status,
-          emailVerifiedAt: found.emailVerifiedAt,
-          storageQuota: found.storageQuota,
-          storageUsed: found.storageUsed,
-        };
+        if (found && found.status !== 'suspended') {
+          return {
+            currentUser: {
+              id: found.id,
+              email: found.email,
+              username: found.username,
+              status: found.status,
+              emailVerifiedAt: found.emailVerifiedAt,
+              storageQuota: found.storageQuota,
+              storageUsed: found.storageUsed,
+            },
+            currentSessionId: null,
+          };
+        }
       }
     }
 
     return {
-      currentUser: user,
-      currentSessionId: sessionId,
+      currentUser: null,
+      currentSessionId: null,
     };
   });
 
