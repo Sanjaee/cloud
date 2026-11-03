@@ -214,11 +214,11 @@ export const sharingRoutes = new Elysia({ prefix: '/shares' })
       if (sharedCount > 0) {
         await db.insert(notifications).values({
           userId: recipient.id,
-          type: 'resource_shared',
-          title: 'New items shared with you',
-          message: `${currentUser.username} shared ${sharedCount} item(s) with you (${permission} access)${message ? `: "${message}"` : ''}`,
-          resourceType: 'file',
+          actorId: currentUser.id,
+          type: 'share_received',
+          resourceType: items[0]?.resourceType || 'file',
           resourceId: items[0]?.resourceId,
+          message: `${currentUser.username} shared ${sharedCount} item(s) with you (${permission} access)${message ? `: "${message}"` : ''}`,
         });
       }
 
