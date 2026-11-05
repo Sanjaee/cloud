@@ -318,7 +318,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
         idToken: t.Optional(t.String()),
         code: t.Optional(t.String()),
         redirectUri: t.Optional(t.String()),
-        deviceId: t.Optional(t.String()),
+        deviceId: t.Optional(t.Nullable(t.String())),
       }),
       detail: { tags: ['Google OAuth'], summary: 'Mobile direct token/code authentication' },
     }
