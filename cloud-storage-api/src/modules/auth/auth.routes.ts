@@ -272,6 +272,30 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 
       const user = await GoogleOAuthService.findOrCreateGoogleUser(googleUser);
 
+      // Check if user has MFA/TOTP enabled
+      const mfa = await db.query.mfaCredentials.findFirst({
+        where: and(eq(mfaCredentials.userId, user.id), eq(mfaCredentials.isEnabled, true)),
+      });
+
+      if (mfa) {
+        const mfaPendingToken = await jwt.sign({
+          sub: user.id,
+          email: user.email,
+          purpose: 'mfa_google_verify',
+          exp: Math.floor(Date.now() / 1000) + 300,
+        });
+
+        return {
+          success: true,
+          message: 'MFA verification required',
+          data: {
+            mfaRequired: true,
+            mfaToken: mfaPendingToken,
+            email: user.email,
+          },
+        };
+      }
+
       const accessToken = await jwt.sign({
         sub: user.id,
         email: user.email,
