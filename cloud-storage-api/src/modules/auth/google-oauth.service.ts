@@ -119,7 +119,12 @@ export class GoogleOAuthService {
     }
 
     const data = (await response.json()) as any;
-    if (data.aud !== env.GOOGLE_CLIENT_ID) {
+    const allowedAudiences = [
+      env.GOOGLE_CLIENT_ID,
+      '624949650977-omqa9dbhs1l3vfkpehig5fe344lve73q.apps.googleusercontent.com',
+      '624949650977-tuldnkr9aju2vk9c9e354etvisaplse0.apps.googleusercontent.com'
+    ].filter(Boolean);
+    if (!allowedAudiences.includes(data.aud)) {
       throw new AppError(401, 'INVALID_AUDIENCE', 'Google ID token audience mismatch');
     }
 
