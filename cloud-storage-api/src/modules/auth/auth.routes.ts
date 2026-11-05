@@ -216,11 +216,55 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       // 2FA Verified! Establish session and exchange ticket
       const { ticket } = await GoogleOAuthService.createSessionAndTicket(userId, request, cookie);
 
+      const user = await db.query.users.findFirst({
+        where: eq(users.id, userId),
+      });
+
+      if (!user) throw new AppError(404, 'NOT_FOUND', 'User not found');
+
+      // Generate Mobile JWT Access Token & Refresh Token for Android & Mobile Clients
+      const accessToken = await jwt.sign({
+        sub: user.id,
+        email: user.email,
+        username: user.username,
+        exp: Math.floor(Date.now() / 1000) + APP_CONSTANTS.ACCESS_TOKEN_EXPIRATION_SEC,
+      });
+
+      const rawRefreshToken = crypto.randomUUID() + crypto.randomUUID();
+      const refreshTokenHash = await hashToken(rawRefreshToken);
+      const refreshExpiresAt = new Date(
+        Date.now() + APP_CONSTANTS.REFRESH_TOKEN_EXPIRATION_DAYS * 24 * 3600 * 1000
+      );
+
+      await db.insert(refreshTokens).values({
+        userId: user.id,
+        tokenHash: refreshTokenHash,
+        familyId: crypto.randomUUID(),
+        deviceId: 'mobile-device',
+        expiresAt: refreshExpiresAt,
+      });
+
       return {
         success: true,
         message: 'Verifikasi 2FA berhasil',
         data: {
           ticket,
+          tokens: {
+            accessToken,
+            refreshToken: rawRefreshToken,
+            expiresIn: APP_CONSTANTS.ACCESS_TOKEN_EXPIRATION_SEC,
+          },
+          user: {
+            id: user.id,
+            email: user.email,
+            username: user.username,
+            avatarUrl: null,
+            storageQuota: user.storageQuota,
+            usedStorage: user.storageUsed,
+            role: 'user',
+            isEmailVerified: !!user.emailVerifiedAt,
+            createdAt: user.createdAt.toISOString(),
+          },
         },
       };
     },
