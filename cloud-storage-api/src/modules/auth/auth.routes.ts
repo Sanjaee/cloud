@@ -277,23 +277,53 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     }
   )
 
-  // 0e. Exchange Ticket for Session Cookie (SPA & Cross-Domain Handover)
+  // 0e. Exchange Ticket for Session Cookie & Mobile Bearer Tokens (SPA & Cross-Domain / Mobile Handover)
   .post(
     '/google/exchange-ticket',
-    async ({ body, cookie }) => {
+    async ({ body, cookie, jwt }: any) => {
       const { ticket } = body;
       const result = await GoogleOAuthService.exchangeTicketForSession(ticket, cookie);
+      const user = result.user;
+
+      const accessToken = await jwt.sign({
+        sub: user.id,
+        email: user.email,
+        username: user.username,
+        exp: Math.floor(Date.now() / 1000) + APP_CONSTANTS.ACCESS_TOKEN_EXPIRATION_SEC,
+      });
+
+      const rawRefreshToken = crypto.randomUUID() + crypto.randomUUID();
+      const refreshTokenHash = await hashToken(rawRefreshToken);
+      const refreshExpiresAt = new Date(
+        Date.now() + APP_CONSTANTS.REFRESH_TOKEN_EXPIRATION_DAYS * 24 * 3600 * 1000
+      );
+
+      await db.insert(refreshTokens).values({
+        userId: user.id,
+        tokenHash: refreshTokenHash,
+        familyId: crypto.randomUUID(),
+        deviceId: 'mobile-oauth-device',
+        expiresAt: refreshExpiresAt,
+      });
+
       return {
         success: true,
         message: 'Session established successfully',
-        data: result,
+        data: {
+          ...result,
+          tokens: {
+            accessToken,
+            refreshToken: rawRefreshToken,
+            expiresIn: APP_CONSTANTS.ACCESS_TOKEN_EXPIRATION_SEC,
+          },
+        },
       };
     },
     {
       body: t.Object({
         ticket: t.String({ minLength: 10 }),
       }),
-      detail: { tags: ['Google OAuth'], summary: 'Exchange single-use ticket for session cookie' },
+      detail: { tags: ['Google OAuth'], summary: 'Exchange single-use ticket for session cookie and tokens' },
     }
   )
 

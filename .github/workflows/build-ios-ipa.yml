@@ -1,0 +1,92 @@
+name: Build iOS IPA (Kotlin Multiplatform)
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-ios-ipa:
+    name: Build ZacodeCloud-iOS.ipa on macOS
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Make gradlew executable
+        working-directory: cloud-storage-ios
+        run: chmod +x ./gradlew
+
+      - name: Compile Kotlin Compose Multiplatform Framework (iosArm64 Release)
+        working-directory: cloud-storage-ios
+        run: ./gradlew :composeApp:linkReleaseFrameworkIosArm64 --no-daemon
+
+      - name: Generate Xcode Project with XcodeGen
+        working-directory: cloud-storage-ios/iosApp
+        run: |
+          if ! command -v xcodegen &> /dev/null; then
+            brew install xcodegen
+          fi
+          xcodegen generate
+
+      - name: Build Unsigned iOS Application Bundle (ZacodeCloud.app)
+        working-directory: cloud-storage-ios/iosApp
+        run: |
+          xcodebuild \
+            -project iosApp.xcodeproj \
+            -scheme ZacodeCloud \
+            -configuration Release \
+            -sdk iphoneos \
+            ARCHS=arm64 \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            SYMROOT="$PWD/build" \
+            build
+
+      - name: Package Payload into ZacodeCloud-iOS.ipa
+        working-directory: cloud-storage-ios/iosApp
+        run: |
+          mkdir -p Payload
+          cp -R build/Release-iphoneos/ZacodeCloud.app Payload/
+          zip -r -9 ZacodeCloud-iOS.ipa Payload
+          ls -lh ZacodeCloud-iOS.ipa
+
+      - name: Upload ZacodeCloud-iOS.ipa Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZacodeCloud-iOS-IPA
+          path: cloud-storage-ios/iosApp/ZacodeCloud-iOS.ipa
+          retention-days: 90
+
+      - name: Publish IPA to GitHub Releases (ios-latest)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ios-latest
+          name: "Zacode Cloud iOS (Kotlin Multiplatform IPA)"
+          body: |
+            ### Zacode Cloud iOS Edition (Kotlin Compose Multiplatform)
+            File **`ZacodeCloud-iOS.ipa`** siap di-install ke iPhone/iPad dari **Windows** tanpa memerlukan Mac!
+
+            #### Cara Install ke iPhone dari Windows:
+            1. Download file **`ZacodeCloud-iOS.ipa`** di bawah.
+            2. Download & buka aplikasi **[Sideloadly](https://sideloadly.io/)** (atau **AltStore**) di Windows.
+            3. Hubungkan iPhone ke PC Windows menggunakan kabel USB.
+            4. Tarik file **`ZacodeCloud-iOS.ipa`** ke Sideloadly, masukkan Apple ID Anda, lalu klik **Start**.
+            5. Di iPhone, buka **Settings → General → VPN & Device Management**, pilih Apple ID Anda dan klik **Trust**.
+          files: cloud-storage-ios/iosApp/ZacodeCloud-iOS.ipa
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

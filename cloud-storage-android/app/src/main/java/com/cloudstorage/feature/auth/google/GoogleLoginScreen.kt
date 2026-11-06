@@ -1,5 +1,7 @@
 package com.cloudstorage.feature.auth.google
 
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -7,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -94,29 +97,67 @@ fun GoogleLoginScreen(
 
             // Error Banner if present
             if (uiState is GoogleLoginUiState.Error) {
-                val errorMsg = (uiState as GoogleLoginUiState.Error).message
-                Row(
+                val errState = uiState as GoogleLoginUiState.Error
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(AccentRed.copy(alpha = 0.12f), RoundedCornerShape(10.dp))
                         .border(1.dp, AccentRed.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
                         .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.ErrorOutline,
-                        contentDescription = null,
-                        tint = AccentRed,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Text(
-                        text = errorMsg,
-                        color = AccentRed,
-                        fontSize = 12.sp,
-                        lineHeight = 16.sp,
-                        modifier = Modifier.weight(1f)
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ErrorOutline,
+                            contentDescription = null,
+                            tint = AccentRed,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = errState.message,
+                            color = AccentRed,
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    if (errState.isNoAccountOnDevice) {
+                        Button(
+                            onClick = {
+                                try {
+                                    val intent = Intent(Settings.ACTION_ADD_ACCOUNT).apply {
+                                        putExtra(Settings.EXTRA_ACCOUNT_TYPES, arrayOf("com.google"))
+                                    }
+                                    context.startActivity(intent)
+                                } catch (_: Exception) {
+                                    context.startActivity(Intent(Settings.ACTION_SETTINGS))
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().height(38.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PrimaryBlue,
+                                contentColor = TextPrimaryDark
+                            ),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PersonAdd,
+                                contentDescription = null,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Tambah Akun Google di Emulator",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
                 }
             }
 

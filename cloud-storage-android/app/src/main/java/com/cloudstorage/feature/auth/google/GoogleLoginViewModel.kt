@@ -3,14 +3,17 @@ package com.cloudstorage.feature.auth.google
 import android.content.Context
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
+import androidx.credentials.GetCredentialResponse
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.NoCredentialException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cloudstorage.BuildConfig
 import com.cloudstorage.domain.repository.AuthRepository
 import com.cloudstorage.domain.repository.GoogleAuthResult
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,7 +27,7 @@ sealed interface GoogleLoginUiState {
     object Loading : GoogleLoginUiState
     object Success : GoogleLoginUiState
     data class MfaRequired(val mfaToken: String, val email: String?) : GoogleLoginUiState
-    data class Error(val message: String) : GoogleLoginUiState
+    data class Error(val message: String, val isNoAccountOnDevice: Boolean = false) : GoogleLoginUiState
 }
 
 @HiltViewModel
@@ -44,20 +47,32 @@ class GoogleLoginViewModel @Inject constructor(
 
             try {
                 val credentialManager = CredentialManager.create(context)
-                val googleIdOption = GetGoogleIdOption.Builder()
-                    .setFilterByAuthorizedAccounts(false)
-                    .setServerClientId(webClientId)
-                    .setAutoSelectEnabled(false)
-                    .build()
+                val result: GetCredentialResponse = try {
+                    val googleIdOption = GetGoogleIdOption.Builder()
+                        .setFilterByAuthorizedAccounts(false)
+                        .setServerClientId(webClientId)
+                        .setAutoSelectEnabled(false)
+                        .build()
 
-                val request = GetCredentialRequest.Builder()
-                    .addCredentialOption(googleIdOption)
-                    .build()
+                    val request = GetCredentialRequest.Builder()
+                        .addCredentialOption(googleIdOption)
+                        .build()
 
-                val result = credentialManager.getCredential(
-                    request = request,
-                    context = context
-                )
+                    credentialManager.getCredential(
+                        request = request,
+                        context = context
+                    )
+                } catch (e: NoCredentialException) {
+                    // Fallback to GetSignInWithGoogleOption button flow
+                    val signInOption = GetSignInWithGoogleOption.Builder(webClientId).build()
+                    val fallbackRequest = GetCredentialRequest.Builder()
+                        .addCredentialOption(signInOption)
+                        .build()
+                    credentialManager.getCredential(
+                        request = fallbackRequest,
+                        context = context
+                    )
+                }
 
                 val credential = result.credential
                 if (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
@@ -85,6 +100,11 @@ class GoogleLoginViewModel @Inject constructor(
             } catch (e: GetCredentialCancellationException) {
                 // User dismissed account picker
                 _uiState.value = GoogleLoginUiState.Idle
+            } catch (e: NoCredentialException) {
+                _uiState.value = GoogleLoginUiState.Error(
+                    message = "Belum ada akun Google yang login di emulator/perangkat ini. Silakan tambahkan akun Google terlebih dahulu.",
+                    isNoAccountOnDevice = true
+                )
             } catch (e: GetCredentialException) {
                 _uiState.value = GoogleLoginUiState.Error(e.localizedMessage ?: "Google Sign-In failed")
             } catch (e: Exception) {

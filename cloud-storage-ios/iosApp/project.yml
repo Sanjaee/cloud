@@ -1,0 +1,44 @@
+name: iosApp
+options:
+  bundleIdPrefix: com.cloudstorage
+  deploymentTarget:
+    iOS: "15.0"
+settings:
+  base:
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+    SWIFT_VERSION: "5.0"
+targets:
+  ZacodeCloud:
+    type: application
+    platform: iOS
+    deploymentTarget: "15.0"
+    sources:
+      - path: iosApp
+        excludes:
+          - Info.plist
+    info:
+      path: iosApp/Info.plist
+    settings:
+      base:
+        PRODUCT_NAME: ZacodeCloud
+        PRODUCT_BUNDLE_IDENTIFIER: com.cloudstorage.ios
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+        FRAMEWORK_SEARCH_PATHS:
+          - "$(inherited)"
+          - "$(PROJECT_DIR)/../composeApp/build/bin/iosArm64/releaseFramework"
+        OTHER_LDFLAGS:
+          - "$(inherited)"
+          - "-framework"
+          - "ComposeApp"
+          - "-lsqlite3"
+          - "-lc++"
+        ENABLE_BITCODE: NO
+    dependencies:
+      - sdk: UIKit.framework
+      - sdk: Foundation.framework
+      - sdk: WebKit.framework
+      - sdk: CoreGraphics.framework
+      - sdk: QuartzCore.framework
+      - sdk: Metal.framework
+      - sdk: Security.framework
