@@ -23,9 +23,11 @@ export const sessionRoutes = new Elysia({ prefix: '/sessions' })
         data: {
           sessions: userSessions.map(s => ({
             id: s.id,
+            userId: s.userId,
             ipAddress: s.ipAddress,
             userAgent: s.userAgent,
             lastUsedAt: s.lastUsedAt,
+            lastActiveAt: s.lastUsedAt,
             createdAt: s.createdAt,
             isCurrent: s.id === currentSessionId,
           })),
