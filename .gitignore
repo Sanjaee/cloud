@@ -8,4 +8,12 @@ build/
 .svelte-kit/
 *.log
 .DS_Store
-
+.gradle/
+*.apk
+*.aab
+local.properties
+*.xml.dump
+window_dump.xml
+current_screen.xml
+screen_*.png
+emulator_current.png
