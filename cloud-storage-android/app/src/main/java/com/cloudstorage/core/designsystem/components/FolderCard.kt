@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DriveFileRenameOutline
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -34,6 +35,7 @@ fun FolderCard(
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
     onStarClick: (Boolean) -> Unit = {},
+    onShareClick: () -> Unit = {},
     onRenameClick: () -> Unit = {},
     onDeleteClick: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -109,12 +111,30 @@ fun FolderCard(
                 DropdownMenu(
                     expanded = showMenu,
                     onDismissRequest = { showMenu = false },
-                    modifier = Modifier.background(SurfaceElevatedDark)
+                    modifier = Modifier
+                        .background(SurfaceElevatedDark)
+                        .border(1.dp, BorderDark, RoundedCornerShape(8.dp))
                 ) {
+                    DropdownMenuItem(
+                        text = { Text("Share", color = TextPrimaryDark, fontSize = 13.sp) },
+                        onClick = {
+                            showMenu = false
+                            onShareClick()
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Outlined.Share,
+                                contentDescription = null,
+                                tint = TextSecondaryDark,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    )
+
                     DropdownMenuItem(
                         text = {
                             Text(
-                                if (folder.isStarred) "Hapus dari Berbintang" else "Tambah ke Berbintang",
+                                if (folder.isStarred) "Remove Star" else "Star",
                                 color = TextPrimaryDark,
                                 fontSize = 13.sp
                             )
@@ -134,7 +154,7 @@ fun FolderCard(
                     )
 
                     DropdownMenuItem(
-                        text = { Text("Ubah Nama", color = TextPrimaryDark, fontSize = 13.sp) },
+                        text = { Text("Rename", color = TextPrimaryDark, fontSize = 13.sp) },
                         onClick = {
                             showMenu = false
                             onRenameClick()
@@ -152,7 +172,7 @@ fun FolderCard(
                     HorizontalDivider(color = BorderDark)
 
                     DropdownMenuItem(
-                        text = { Text("Hapus Folder", color = AccentRed, fontSize = 13.sp) },
+                        text = { Text("Delete", color = AccentRed, fontSize = 13.sp) },
                         onClick = {
                             showMenu = false
                             onDeleteClick()

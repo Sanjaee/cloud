@@ -8,16 +8,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cloudstorage.core.network.NetworkResult
 import com.cloudstorage.core.security.SecureTokenStorage
+import com.cloudstorage.data.remote.dto.UserSearchItemDto
 import com.cloudstorage.domain.model.Breadcrumb
+import com.cloudstorage.domain.model.Collaborator
 import com.cloudstorage.domain.model.FileItem
 import com.cloudstorage.domain.model.FolderItem
 import com.cloudstorage.domain.repository.DownloadRepository
 import com.cloudstorage.domain.repository.FileRepository
 import com.cloudstorage.domain.repository.FolderRepository
+import com.cloudstorage.domain.repository.ShareRepository
 import com.cloudstorage.domain.repository.UploadRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -36,7 +40,19 @@ data class DriveUiState(
     val successMessage: String? = null,
     val errorMessage: String? = null,
     val selectedFileIds: Set<String> = emptySet(),
-    val selectedFolderIds: Set<String> = emptySet()
+    val selectedFolderIds: Set<String> = emptySet(),
+    // Share Dialog State
+    val showShareDialog: Boolean = false,
+    val shareResourceType: String? = null,
+    val shareResourceId: String? = null,
+    val shareResourceName: String = "",
+    val isBatchShare: Boolean = false,
+    val collaborators: List<Collaborator> = emptyList(),
+    val shareUserSearchResults: List<UserSearchItemDto> = emptyList(),
+    val publicLinkUrl: String = "",
+    val isSharingAction: Boolean = false,
+    val shareErrorMessage: String? = null,
+    val shareSuccessMessage: String? = null
 )
 
 @HiltViewModel
@@ -45,6 +61,7 @@ class DriveViewModel @Inject constructor(
     private val folderRepository: FolderRepository,
     private val uploadRepository: UploadRepository,
     private val downloadRepository: DownloadRepository,
+    private val shareRepository: ShareRepository,
     private val secureTokenStorage: SecureTokenStorage,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -60,6 +77,7 @@ class DriveViewModel @Inject constructor(
     val accessToken: String? get() = secureTokenStorage.getAccessToken()
 
     private var currentLoadJob: Job? = null
+    private var searchUsersJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -159,6 +177,204 @@ class DriveViewModel @Inject constructor(
             }
         }
     }
+
+    // --- SHARE DIALOG ACTIONS ---
+
+    fun openSingleShareDialog(resourceType: String, resourceId: String, resourceName: String) {
+        _uiState.update {
+            it.copy(
+                showShareDialog = true,
+                shareResourceType = resourceType,
+                shareResourceId = resourceId,
+                shareResourceName = resourceName,
+                isBatchShare = false,
+                collaborators = emptyList(),
+                shareUserSearchResults = emptyList(),
+                publicLinkUrl = "",
+                isSharingAction = false,
+                shareErrorMessage = null,
+                shareSuccessMessage = null
+            )
+        }
+        loadCollaborators(resourceType, resourceId)
+        loadOrCreatePublicLink(resourceType, resourceId)
+    }
+
+    fun openSelectedShareDialog() {
+        val state = _uiState.value
+        val totalSelected = state.selectedFileIds.size + state.selectedFolderIds.size
+        if (totalSelected == 0) return
+
+        if (totalSelected == 1) {
+            if (state.selectedFileIds.size == 1) {
+                val fileId = state.selectedFileIds.first()
+                val fileName = state.files.find { it.id == fileId }?.name ?: "File"
+                openSingleShareDialog("file", fileId, fileName)
+            } else {
+                val folderId = state.selectedFolderIds.first()
+                val folderName = state.folders.find { it.id == folderId }?.name ?: "Folder"
+                openSingleShareDialog("folder", folderId, folderName)
+            }
+        } else {
+            _uiState.update {
+                it.copy(
+                    showShareDialog = true,
+                    shareResourceType = null,
+                    shareResourceId = null,
+                    shareResourceName = "$totalSelected Items",
+                    isBatchShare = true,
+                    collaborators = emptyList(),
+                    shareUserSearchResults = emptyList(),
+                    publicLinkUrl = "",
+                    isSharingAction = false,
+                    shareErrorMessage = null,
+                    shareSuccessMessage = null
+                )
+            }
+        }
+    }
+
+    fun closeShareDialog() {
+        _uiState.update {
+            it.copy(
+                showShareDialog = false,
+                shareUserSearchResults = emptyList(),
+                shareErrorMessage = null,
+                shareSuccessMessage = null
+            )
+        }
+    }
+
+    private fun loadCollaborators(resourceType: String, resourceId: String) {
+        viewModelScope.launch {
+            when (val res = shareRepository.getCollaborators(resourceType, resourceId)) {
+                is NetworkResult.Success -> {
+                    _uiState.update { it.copy(collaborators = res.data) }
+                }
+                else -> Unit
+            }
+        }
+    }
+
+    private fun loadOrCreatePublicLink(resourceType: String, resourceId: String) {
+        viewModelScope.launch {
+            when (val res = shareRepository.createPublicLink(resourceType, resourceId)) {
+                is NetworkResult.Success -> {
+                    _uiState.update { it.copy(publicLinkUrl = res.data) }
+                }
+                else -> Unit
+            }
+        }
+    }
+
+    fun searchUsersForShare(query: String) {
+        searchUsersJob?.cancel()
+        val trimmed = query.trim()
+        if (trimmed.length < 2) {
+            _uiState.update { it.copy(shareUserSearchResults = emptyList()) }
+            return
+        }
+        searchUsersJob = viewModelScope.launch {
+            delay(200)
+            when (val res = shareRepository.searchUsers(trimmed)) {
+                is NetworkResult.Success -> {
+                    _uiState.update { it.copy(shareUserSearchResults = res.data) }
+                }
+                else -> Unit
+            }
+        }
+    }
+
+    fun clearShareSearchResults() {
+        _uiState.update { it.copy(shareUserSearchResults = emptyList()) }
+    }
+
+    fun submitShare(recipient: String, permission: String, message: String?) {
+        val state = _uiState.value
+        if (recipient.isBlank()) return
+
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isSharingAction = true,
+                    shareErrorMessage = null,
+                    shareSuccessMessage = null
+                )
+            }
+
+            if (state.isBatchShare) {
+                val fileIds = state.selectedFileIds.toList()
+                val folderIds = state.selectedFolderIds.toList()
+                when (val res = shareRepository.batchShare(fileIds, folderIds, recipient, permission, message)) {
+                    is NetworkResult.Success -> {
+                        val total = fileIds.size + folderIds.size
+                        _uiState.update {
+                            it.copy(
+                                isSharingAction = false,
+                                shareSuccessMessage = "Berhasil membagikan $total item ke $recipient",
+                                successMessage = "Berhasil membagikan $total item ke $recipient"
+                            )
+                        }
+                        delay(900)
+                        closeShareDialog()
+                        clearSelection()
+                    }
+                    is NetworkResult.Error -> {
+                        _uiState.update {
+                            it.copy(
+                                isSharingAction = false,
+                                shareErrorMessage = res.message
+                            )
+                        }
+                    }
+                    else -> _uiState.update { it.copy(isSharingAction = false) }
+                }
+            } else {
+                val rType = state.shareResourceType ?: return@launch
+                val rId = state.shareResourceId ?: return@launch
+                when (val res = shareRepository.shareResource(rType, rId, recipient, permission, message)) {
+                    is NetworkResult.Success -> {
+                        _uiState.update {
+                            it.copy(
+                                isSharingAction = false,
+                                shareSuccessMessage = "Akses berhasil dibagikan ke $recipient"
+                            )
+                        }
+                        loadCollaborators(rType, rId)
+                    }
+                    is NetworkResult.Error -> {
+                        _uiState.update {
+                            it.copy(
+                                isSharingAction = false,
+                                shareErrorMessage = res.message
+                            )
+                        }
+                    }
+                    else -> _uiState.update { it.copy(isSharingAction = false) }
+                }
+            }
+        }
+    }
+
+    fun revokeCollaborator(userId: String) {
+        val state = _uiState.value
+        val rType = state.shareResourceType ?: return
+        val rId = state.shareResourceId ?: return
+
+        viewModelScope.launch {
+            when (val res = shareRepository.revokeCollaborator(rType, rId, userId)) {
+                is NetworkResult.Success -> {
+                    loadCollaborators(rType, rId)
+                }
+                is NetworkResult.Error -> {
+                    _uiState.update { it.copy(shareErrorMessage = res.message) }
+                }
+                else -> Unit
+            }
+        }
+    }
+
+    // --- UPLOAD & FILE MANAGEMENT ---
 
     fun uploadFiles(uris: List<Uri>, context: Context) {
         if (uris.isEmpty()) return

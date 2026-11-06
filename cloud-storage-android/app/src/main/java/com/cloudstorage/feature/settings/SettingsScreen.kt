@@ -2,10 +2,8 @@ package com.cloudstorage.feature.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -19,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -65,7 +64,8 @@ fun SettingsScreen(
                     Text(
                         text = "Profile & Security",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
+                        fontSize = 16.sp,
+                        lineHeight = 20.sp,
                         color = TextPrimaryDark
                     )
                 },
@@ -74,7 +74,8 @@ fun SettingsScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Kembali",
-                            tint = TextPrimaryDark
+                            tint = TextPrimaryDark,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 },
@@ -83,7 +84,8 @@ fun SettingsScreen(
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = "Refresh",
-                            tint = TextPrimaryDark
+                            tint = TextPrimaryDark,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 },
@@ -99,35 +101,32 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(vertical = 16.dp)
+                .padding(horizontal = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(vertical = 10.dp)
         ) {
             // Success & Error Banners
             if (uiState.successMessage != null) {
                 item {
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = AccentEmerald.copy(alpha = 0.15f)),
-                        shape = RoundedCornerShape(10.dp),
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .background(AccentEmerald.copy(alpha = 0.14f), RoundedCornerShape(10.dp))
                             .border(1.dp, AccentEmerald.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Icon(Icons.Default.CheckCircle, null, tint = AccentEmerald, modifier = Modifier.size(20.dp))
-                            Text(
-                                text = uiState.successMessage ?: "",
-                                color = AccentEmerald,
-                                fontSize = 13.sp,
-                                modifier = Modifier.weight(1f)
-                            )
-                            IconButton(onClick = { viewModel.clearMessages() }, modifier = Modifier.size(24.dp)) {
-                                Icon(Icons.Default.Close, null, tint = AccentEmerald, modifier = Modifier.size(16.dp))
-                            }
+                        Icon(Icons.Default.CheckCircle, null, tint = AccentEmerald, modifier = Modifier.size(16.dp))
+                        Text(
+                            text = uiState.successMessage ?: "",
+                            color = AccentEmerald,
+                            fontSize = 12.sp,
+                            lineHeight = 15.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(onClick = { viewModel.clearMessages() }, modifier = Modifier.size(22.dp)) {
+                            Icon(Icons.Default.Close, null, tint = AccentEmerald, modifier = Modifier.size(14.dp))
                         }
                     }
                 }
@@ -135,102 +134,138 @@ fun SettingsScreen(
 
             if (uiState.errorMessage != null) {
                 item {
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = AccentRed.copy(alpha = 0.15f)),
-                        shape = RoundedCornerShape(10.dp),
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .background(AccentRed.copy(alpha = 0.14f), RoundedCornerShape(10.dp))
                             .border(1.dp, AccentRed.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Icon(Icons.Default.ErrorOutline, null, tint = AccentRed, modifier = Modifier.size(20.dp))
-                            Text(
-                                text = uiState.errorMessage ?: "",
-                                color = AccentRed,
-                                fontSize = 13.sp,
-                                modifier = Modifier.weight(1f)
-                            )
-                            IconButton(onClick = { viewModel.clearMessages() }, modifier = Modifier.size(24.dp)) {
-                                Icon(Icons.Default.Close, null, tint = AccentRed, modifier = Modifier.size(16.dp))
-                            }
+                        Icon(Icons.Default.ErrorOutline, null, tint = AccentRed, modifier = Modifier.size(16.dp))
+                        Text(
+                            text = uiState.errorMessage ?: "",
+                            color = AccentRed,
+                            fontSize = 12.sp,
+                            lineHeight = 15.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(onClick = { viewModel.clearMessages() }, modifier = Modifier.size(22.dp)) {
+                            Icon(Icons.Default.Close, null, tint = AccentRed, modifier = Modifier.size(14.dp))
                         }
                     }
                 }
             }
 
-            // 1. User Profile Card
+            // 1. User Profile Card (Compact)
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = SurfaceDark),
-                    border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderDark))
+                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderDark)
                 ) {
                     Column(
-                        modifier = Modifier.padding(18.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Row(
+                            modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(54.dp)
-                                    .clip(CircleShape)
-                                    .background(PrimaryBlue.copy(alpha = 0.2f))
-                                    .border(1.5.dp, PrimaryBlue, CircleShape),
-                                contentAlignment = Alignment.Center
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                val initial = (uiState.user?.username?.firstOrNull() ?: uiState.user?.email?.firstOrNull() ?: 'U').uppercaseChar()
-                                Text(
-                                    text = initial.toString(),
-                                    fontSize = 22.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = PrimaryBlue
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(PrimaryBlue.copy(alpha = 0.2f))
+                                        .border(1.dp, PrimaryBlue.copy(alpha = 0.6f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    val initial = (uiState.user?.username?.firstOrNull()
+                                        ?: uiState.user?.email?.firstOrNull()
+                                        ?: 'U').uppercaseChar()
+                                    Text(
+                                        text = initial.toString(),
+                                        fontSize = 16.sp,
+                                        lineHeight = 20.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = PrimaryBlue
+                                    )
+                                }
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = uiState.user?.username ?: "User",
+                                        fontSize = 14.sp,
+                                        lineHeight = 17.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextPrimaryDark,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = uiState.user?.email ?: "",
+                                        fontSize = 11.sp,
+                                        lineHeight = 14.sp,
+                                        color = TextSecondaryDark,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
                             }
 
-                            Column(modifier = Modifier.weight(1f)) {
+                            // Compact Logout Button right in Profile Header
+                            OutlinedButton(
+                                onClick = { showLogoutDialog = true },
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = AccentRed.copy(alpha = 0.12f),
+                                    contentColor = AccentRed
+                                ),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, AccentRed.copy(alpha = 0.4f)),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                modifier = Modifier.height(32.dp)
+                            ) {
+                                Icon(Icons.Outlined.Logout, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(Modifier.width(5.dp))
                                 Text(
-                                    text = uiState.user?.username ?: "User",
-                                    fontSize = 17.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextPrimaryDark
-                                )
-                                Text(
-                                    text = uiState.user?.email ?: "",
-                                    fontSize = 13.sp,
-                                    color = TextSecondaryDark,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    text = "Logout",
+                                    fontSize = 11.sp,
+                                    lineHeight = 14.sp,
+                                    fontWeight = FontWeight.SemiBold
                                 )
                             }
                         }
 
-                        // Storage Usage Bar
+                        // Compact Storage Usage Bar
                         val quota = uiState.quota
                         val used = quota?.usedStorage ?: 0L
                         val total = quota?.totalQuota ?: (10L * 1024 * 1024 * 1024)
                         val percent = if (total > 0) (used.toFloat() / total.toFloat()).coerceIn(0f, 1f) else 0f
 
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "Storage: ${formatBytes(used)} dari ${formatBytes(total)}",
-                                    fontSize = 12.sp,
-                                    color = TextSecondaryDark
+                                    text = "Storage: ${formatBytes(used)} / ${formatBytes(total)}",
+                                    fontSize = 11.sp,
+                                    lineHeight = 14.sp,
+                                    color = TextMutedDark
                                 )
                                 Text(
                                     text = "${(percent * 100).toInt()}%",
-                                    fontSize = 12.sp,
+                                    fontSize = 11.sp,
+                                    lineHeight = 14.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = PrimaryBlue
                                 )
@@ -239,110 +274,102 @@ fun SettingsScreen(
                                 progress = { percent },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(6.dp)
+                                    .height(5.dp)
                                     .clip(RoundedCornerShape(3.dp)),
                                 color = PrimaryBlue,
                                 trackColor = SurfaceElevatedDark
-                            )
-                        }
-
-                        // Logout Button
-                        Button(
-                            onClick = { showLogoutDialog = true },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = AccentRed.copy(alpha = 0.15f),
-                                contentColor = AccentRed
-                            ),
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(44.dp)
-                                .border(1.dp, AccentRed.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
-                        ) {
-                            Icon(Icons.Outlined.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                text = "Keluar dari Akun (Logout)",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold
                             )
                         }
                     }
                 }
             }
 
-            // 2. Active Sessions Section
+            // 2. Active Sessions Section (Compact)
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = SurfaceDark),
-                    border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderDark))
+                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderDark)
                 ) {
                     Column(
-                        modifier = Modifier.padding(18.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(Icons.Outlined.Devices, null, tint = TextPrimaryDark, modifier = Modifier.size(18.dp))
-                                    Text(
-                                        text = "Active Sessions (${uiState.sessions.size})",
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = TextPrimaryDark
-                                    )
-                                }
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(Icons.Outlined.Smartphone, null, tint = TextSecondaryDark, modifier = Modifier.size(16.dp))
                                 Text(
-                                    text = "Devices that currently have active session cookies or API tokens.",
-                                    fontSize = 11.sp,
-                                    color = TextMutedDark
+                                    text = "Active Sessions (${uiState.sessions.size})",
+                                    fontSize = 13.sp,
+                                    lineHeight = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextPrimaryDark,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
 
                             if (uiState.sessions.size > 1) {
                                 OutlinedButton(
                                     onClick = { showRevokeOthersDialog = true },
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentRed),
-                                    shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                                    modifier = Modifier.height(34.dp)
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = AccentRed.copy(alpha = 0.08f),
+                                        contentColor = AccentRed
+                                    ),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, AccentRed.copy(alpha = 0.35f)),
+                                    shape = RoundedCornerShape(6.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                    modifier = Modifier.height(28.dp)
                                 ) {
-                                    Icon(Icons.AutoMirrored.Filled.ExitToApp, null, modifier = Modifier.size(14.dp))
+                                    Icon(Icons.AutoMirrored.Filled.ExitToApp, null, modifier = Modifier.size(12.dp))
                                     Spacer(Modifier.width(4.dp))
-                                    Text("Sign Out Others", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                    Text("Sign Out Others", fontSize = 10.sp, lineHeight = 12.sp, fontWeight = FontWeight.SemiBold)
                                 }
                             }
                         }
 
-                        // Sessions list
-                        uiState.sessions.forEach { session ->
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(SurfaceElevatedDark, RoundedCornerShape(10.dp))
-                                    .border(1.dp, BorderDark, RoundedCornerShape(10.dp))
-                                    .padding(12.dp)
-                            ) {
+                        Text(
+                            text = "Devices that currently have active session cookies or API tokens.",
+                            fontSize = 11.sp,
+                            lineHeight = 14.sp,
+                            color = TextMutedDark
+                        )
+
+                        // Sessions list (Compact rows)
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            uiState.sessions.forEach { session ->
                                 Row(
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(Color(0xFF16161A), RoundedCornerShape(8.dp))
+                                        .border(1.dp, BorderDark.copy(alpha = 0.7f), RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 10.dp, vertical = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Language,
-                                        contentDescription = null,
-                                        tint = TextSecondaryDark,
-                                        modifier = Modifier.size(24.dp)
-                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(SurfaceElevatedDark),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Language,
+                                            contentDescription = null,
+                                            tint = TextSecondaryDark,
+                                            modifier = Modifier.size(15.dp)
+                                        )
+                                    }
 
                                     Column(modifier = Modifier.weight(1f)) {
                                         Row(
@@ -352,19 +379,22 @@ fun SettingsScreen(
                                             Text(
                                                 text = session.ipAddress ?: "Unknown IP",
                                                 fontWeight = FontWeight.SemiBold,
-                                                fontSize = 13.sp,
-                                                color = TextPrimaryDark
+                                                fontSize = 12.sp,
+                                                lineHeight = 15.sp,
+                                                color = TextPrimaryDark,
+                                                maxLines = 1
                                             )
                                             if (session.isCurrent) {
                                                 Box(
                                                     modifier = Modifier
-                                                        .background(AccentEmerald.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
-                                                        .border(1.dp, AccentEmerald.copy(alpha = 0.4f), RoundedCornerShape(4.dp))
-                                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                        .background(AccentEmerald.copy(alpha = 0.16f), RoundedCornerShape(4.dp))
+                                                        .border(1.dp, AccentEmerald.copy(alpha = 0.35f), RoundedCornerShape(4.dp))
+                                                        .padding(horizontal = 5.dp, vertical = 1.dp)
                                                 ) {
                                                     Text(
                                                         text = "Current",
-                                                        fontSize = 10.sp,
+                                                        fontSize = 9.sp,
+                                                        lineHeight = 11.sp,
                                                         color = AccentEmerald,
                                                         fontWeight = FontWeight.Bold
                                                     )
@@ -373,8 +403,9 @@ fun SettingsScreen(
                                         }
 
                                         Text(
-                                            text = session.userAgent ?: "Android App",
-                                            fontSize = 11.sp,
+                                            text = session.userAgent ?: "ZacodeStorage-Android/1.0.0",
+                                            fontSize = 10.sp,
+                                            lineHeight = 13.sp,
                                             color = TextMutedDark,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
@@ -384,13 +415,13 @@ fun SettingsScreen(
                                     if (!session.isCurrent) {
                                         IconButton(
                                             onClick = { viewModel.revokeSession(session.id) },
-                                            modifier = Modifier.size(32.dp)
+                                            modifier = Modifier.size(26.dp)
                                         ) {
                                             Icon(
-                                                Icons.Default.Delete,
+                                                Icons.Outlined.Delete,
                                                 contentDescription = "Revoke session",
                                                 tint = TextMutedDark,
-                                                modifier = Modifier.size(18.dp)
+                                                modifier = Modifier.size(15.dp)
                                             )
                                         }
                                     }
@@ -401,101 +432,266 @@ fun SettingsScreen(
                 }
             }
 
-            // 3. Change Password Section
+            // 3. Two-Factor Authentication (TOTP) Section (Compact)
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = SurfaceDark),
-                    border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderDark))
+                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderDark)
                 ) {
                     Column(
-                        modifier = Modifier.padding(18.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(Icons.Outlined.Lock, null, tint = TextSecondaryDark, modifier = Modifier.size(16.dp))
+                                Text(
+                                    text = "Two-Factor Authentication (TOTP)",
+                                    fontSize = 13.sp,
+                                    lineHeight = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextPrimaryDark,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            Box(
+                                modifier = Modifier
+                                    .background(
+                                        if (uiState.isMfaEnabled) AccentEmerald.copy(alpha = 0.16f) else SurfaceElevatedDark,
+                                        RoundedCornerShape(5.dp)
+                                    )
+                                    .border(
+                                        1.dp,
+                                        if (uiState.isMfaEnabled) AccentEmerald.copy(alpha = 0.35f) else BorderDark,
+                                        RoundedCornerShape(5.dp)
+                                    )
+                                    .padding(horizontal = 7.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = if (uiState.isMfaEnabled) "Enabled" else "Disabled",
+                                    fontSize = 10.sp,
+                                    lineHeight = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (uiState.isMfaEnabled) AccentEmerald else TextSecondaryDark
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = "Require a 6-digit TOTP code from Google Authenticator, Authy, or 1Password when signing in.",
+                            fontSize = 11.sp,
+                            lineHeight = 14.sp,
+                            color = TextMutedDark
+                        )
+
+                        if (uiState.isMfaEnabled) {
+                            // Compact Protected Status Card
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(AccentEmerald.copy(alpha = 0.08f), RoundedCornerShape(10.dp))
+                                    .border(1.dp, AccentEmerald.copy(alpha = 0.25f), RoundedCornerShape(10.dp))
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(AccentEmerald.copy(alpha = 0.15f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Shield,
+                                            null,
+                                            tint = AccentEmerald,
+                                            modifier = Modifier.size(15.dp)
+                                        )
+                                    }
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "Akun Anda Dilindungi 2FA",
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 12.sp,
+                                            lineHeight = 15.sp,
+                                            color = TextPrimaryDark,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = "Kode TOTP ponsel aktif untuk setiap sesi login.",
+                                            fontSize = 10.sp,
+                                            lineHeight = 13.sp,
+                                            color = TextSecondaryDark,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.width(8.dp))
+
+                                OutlinedButton(
+                                    onClick = { viewModel.openDisableMfaDialog() },
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = AccentRed.copy(alpha = 0.08f),
+                                        contentColor = AccentRed
+                                    ),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, AccentRed.copy(alpha = 0.45f)),
+                                    shape = RoundedCornerShape(6.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                    modifier = Modifier.height(28.dp)
+                                ) {
+                                    Text(
+                                        text = "Nonaktifkan 2FA",
+                                        fontSize = 10.sp,
+                                        lineHeight = 12.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
+                        } else {
+                            Button(
+                                onClick = { viewModel.openMfaSetupDialog() },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color.White,
+                                    contentColor = Color(0xFF09090B)
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(36.dp)
+                            ) {
+                                Icon(Icons.Default.Security, null, modifier = Modifier.size(15.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    text = "Enable Two-Factor Authentication",
+                                    fontSize = 12.sp,
+                                    lineHeight = 15.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 4. Change Password Section (Compact)
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = SurfaceDark),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderDark)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Icon(Icons.Default.VpnKey, null, tint = PrimaryBlue, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Outlined.VpnKey, null, tint = TextSecondaryDark, modifier = Modifier.size(16.dp))
                             Text(
                                 text = "Change Password",
-                                fontSize = 15.sp,
+                                fontSize = 13.sp,
+                                lineHeight = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = TextPrimaryDark
                             )
                         }
                         Text(
-                            text = "Passwords are encrypted with state-of-the-art Argon2id hashing. Changing your password revokes other sessions.",
+                            text = "Passwords are encrypted with Argon2id hashing. Changing your password revokes other sessions.",
                             fontSize = 11.sp,
-                            color = TextMutedDark,
-                            lineHeight = 15.sp
+                            lineHeight = 14.sp,
+                            color = TextMutedDark
                         )
 
-                        // Current password
                         OutlinedTextField(
                             value = currPassword,
                             onValueChange = { currPassword = it },
-                            label = { Text("Current Password", fontSize = 12.sp) },
+                            placeholder = { Text("Current Password", fontSize = 12.sp, lineHeight = 15.sp, color = TextMutedDark) },
                             singleLine = true,
+                            textStyle = TextStyle(fontSize = 12.sp, lineHeight = 15.sp, color = TextPrimaryDark),
                             visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                             trailingIcon = {
-                                IconButton(onClick = { showPassword = !showPassword }) {
+                                IconButton(onClick = { showPassword = !showPassword }, modifier = Modifier.size(28.dp)) {
                                     Icon(
                                         if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                                         contentDescription = null,
                                         tint = TextMutedDark,
-                                        modifier = Modifier.size(18.dp)
+                                        modifier = Modifier.size(16.dp)
                                     )
                                 }
                             },
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = SurfaceElevatedDark,
-                                unfocusedContainerColor = SurfaceElevatedDark,
+                                focusedContainerColor = Color(0xFF16161A),
+                                unfocusedContainerColor = Color(0xFF16161A),
                                 focusedBorderColor = PrimaryBlue,
                                 unfocusedBorderColor = BorderDark,
                                 focusedTextColor = TextPrimaryDark,
                                 unfocusedTextColor = TextPrimaryDark
                             ),
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.fillMaxWidth()
                         )
 
-                        // New password
                         OutlinedTextField(
                             value = newPassword,
                             onValueChange = { newPassword = it },
-                            label = { Text("New Password (8+ chars)", fontSize = 12.sp) },
+                            placeholder = { Text("New Password (8+ chars)", fontSize = 12.sp, lineHeight = 15.sp, color = TextMutedDark) },
                             singleLine = true,
+                            textStyle = TextStyle(fontSize = 12.sp, lineHeight = 15.sp, color = TextPrimaryDark),
                             visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = SurfaceElevatedDark,
-                                unfocusedContainerColor = SurfaceElevatedDark,
+                                focusedContainerColor = Color(0xFF16161A),
+                                unfocusedContainerColor = Color(0xFF16161A),
                                 focusedBorderColor = PrimaryBlue,
                                 unfocusedBorderColor = BorderDark,
                                 focusedTextColor = TextPrimaryDark,
                                 unfocusedTextColor = TextPrimaryDark
                             ),
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.fillMaxWidth()
                         )
 
-                        // Confirm new password
                         OutlinedTextField(
                             value = confirmPassword,
                             onValueChange = { confirmPassword = it },
-                            label = { Text("Confirm New Password", fontSize = 12.sp) },
+                            placeholder = { Text("Confirm New Password", fontSize = 12.sp, lineHeight = 15.sp, color = TextMutedDark) },
                             singleLine = true,
+                            textStyle = TextStyle(fontSize = 12.sp, lineHeight = 15.sp, color = TextPrimaryDark),
                             visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = SurfaceElevatedDark,
-                                unfocusedContainerColor = SurfaceElevatedDark,
+                                focusedContainerColor = Color(0xFF16161A),
+                                unfocusedContainerColor = Color(0xFF16161A),
                                 focusedBorderColor = PrimaryBlue,
                                 unfocusedBorderColor = BorderDark,
                                 focusedTextColor = TextPrimaryDark,
                                 unfocusedTextColor = TextPrimaryDark
                             ),
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.fillMaxWidth()
                         )
 
@@ -507,215 +703,104 @@ fun SettingsScreen(
                                 confirmPassword = ""
                             },
                             enabled = !uiState.isActionLoading && currPassword.isNotBlank() && newPassword.isNotBlank(),
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(8.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color.White,
-                                contentColor = BackgroundDark
+                                contentColor = Color(0xFF09090B),
+                                disabledContainerColor = Color(0xFF27272A),
+                                disabledContentColor = Color(0xFF71717A)
                             ),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                             modifier = Modifier
                                 .align(Alignment.End)
-                                .height(40.dp)
+                                .height(34.dp)
                         ) {
-                            Text("Update Password", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                            Text("Update Password", fontWeight = FontWeight.SemiBold, fontSize = 12.sp, lineHeight = 15.sp)
                         }
                     }
                 }
             }
 
-            // 4. Two-Factor Authentication (TOTP) Section
+            // 5. Recent Security Activity Section (Compact List)
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = SurfaceDark),
-                    border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderDark))
+                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderDark)
                 ) {
                     Column(
-                        modifier = Modifier.padding(18.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(Icons.Outlined.Lock, null, tint = TextPrimaryDark, modifier = Modifier.size(18.dp))
-                                Text(
-                                    text = "Two-Factor Authentication (TOTP)",
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextPrimaryDark
-                                )
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .background(
-                                        if (uiState.isMfaEnabled) AccentEmerald.copy(alpha = 0.2f) else BorderDark,
-                                        RoundedCornerShape(6.dp)
-                                    )
-                                    .border(
-                                        1.dp,
-                                        if (uiState.isMfaEnabled) AccentEmerald.copy(alpha = 0.4f) else BorderDark,
-                                        RoundedCornerShape(6.dp)
-                                    )
-                                    .padding(horizontal = 8.dp, vertical = 3.dp)
-                            ) {
-                                Text(
-                                    text = if (uiState.isMfaEnabled) "Enabled" else "Disabled",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (uiState.isMfaEnabled) AccentEmerald else TextSecondaryDark
-                                )
-                            }
-                        }
-
                         Text(
-                            text = "Require a 6-digit TOTP code from Google Authenticator, Authy, or 1Password when signing in.",
+                            text = "Recent Security Activity",
+                            fontSize = 13.sp,
+                            lineHeight = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimaryDark
+                        )
+                        Text(
+                            text = "Audit trail of logins, password resets, and security modifications.",
                             fontSize = 11.sp,
+                            lineHeight = 14.sp,
                             color = TextMutedDark
                         )
 
-                        if (uiState.isMfaEnabled) {
-                            // Card: Akun Anda Dilindungi 2FA
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(AccentEmerald.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
-                                    .border(1.dp, AccentEmerald.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
-                                    .padding(14.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Shield,
-                                            null,
-                                            tint = AccentEmerald,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                        Column {
-                                            Text(
-                                                text = "Akun Anda Dilindungi 2FA",
-                                                fontWeight = FontWeight.SemiBold,
-                                                fontSize = 13.sp,
-                                                color = TextPrimaryDark
-                                            )
-                                            Text(
-                                                text = "Kode autentikasi dari ponsel Anda aktif untuk setiap sesi login.",
-                                                fontSize = 11.sp,
-                                                color = TextSecondaryDark
-                                            )
-                                        }
-                                    }
-
-                                    OutlinedButton(
-                                        onClick = { viewModel.openDisableMfaDialog() },
-                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentRed),
-                                        border = androidx.compose.foundation.BorderStroke(1.dp, AccentRed.copy(alpha = 0.5f)),
-                                        shape = RoundedCornerShape(8.dp),
-                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                                        modifier = Modifier.height(34.dp)
-                                    ) {
-                                        Text("Nonaktifkan 2FA", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                                    }
-                                }
-                            }
-                        } else {
-                            Button(
-                                onClick = { viewModel.openMfaSetupDialog() },
-                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
-                                shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(42.dp)
-                            ) {
-                                Icon(Icons.Default.Security, null, modifier = Modifier.size(16.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text("Aktifkan Two-Factor Authentication", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 5. Recent Security Activity Section
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = SurfaceDark),
-                    border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderDark))
-                ) {
-                    Column(
-                        modifier = Modifier.padding(18.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Column {
-                            Text(
-                                text = "Recent Security Activity",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextPrimaryDark
-                            )
-                            Text(
-                                text = "Audit trail of logins, password resets, and security modifications.",
-                                fontSize = 11.sp,
-                                color = TextMutedDark
-                            )
-                        }
+                        Spacer(modifier = Modifier.height(2.dp))
 
                         if (uiState.securityEvents.isEmpty()) {
                             Text(
                                 text = "Belum ada riwayat aktivitas keamanan.",
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
+                                lineHeight = 14.sp,
                                 color = TextMutedDark,
-                                modifier = Modifier.padding(vertical = 8.dp)
+                                modifier = Modifier.padding(vertical = 6.dp)
                             )
                         } else {
-                            uiState.securityEvents.take(10).forEach { event ->
-                                Column(
+                            val eventsList = uiState.securityEvents.take(10)
+                            eventsList.forEachIndexed { index, event ->
+                                Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(vertical = 4.dp)
+                                        .padding(vertical = 5.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
+                                    Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = formatEventType(event.eventType),
-                                            fontSize = 13.sp,
+                                            fontSize = 12.sp,
+                                            lineHeight = 15.sp,
                                             fontWeight = FontWeight.SemiBold,
-                                            color = TextPrimaryDark
+                                            color = TextPrimaryDark,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
                                         )
-                                        Text(
-                                            text = formatTimestamp(event.createdAt),
-                                            fontSize = 11.sp,
-                                            color = TextMutedDark
-                                        )
+                                        if (!event.ipAddress.isNullOrBlank()) {
+                                            Text(
+                                                text = "IP: ${event.ipAddress}",
+                                                fontSize = 10.sp,
+                                                lineHeight = 13.sp,
+                                                color = TextMutedDark,
+                                                maxLines = 1
+                                            )
+                                        }
                                     }
-                                    if (!event.ipAddress.isNullOrBlank()) {
-                                        Text(
-                                            text = "IP: ${event.ipAddress}",
-                                            fontSize = 11.sp,
-                                            color = TextSecondaryDark
-                                        )
-                                    }
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    Text(
+                                        text = formatTimestamp(event.createdAt),
+                                        fontSize = 10.sp,
+                                        lineHeight = 13.sp,
+                                        color = TextMutedDark,
+                                        maxLines = 1
+                                    )
+                                }
+
+                                if (index < eventsList.lastIndex) {
                                     HorizontalDivider(
-                                        modifier = Modifier.padding(top = 8.dp),
                                         color = BorderDark.copy(alpha = 0.5f)
                                     )
                                 }
@@ -731,8 +816,8 @@ fun SettingsScreen(
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
-            title = { Text("Konfirmasi Logout", fontWeight = FontWeight.Bold, color = TextPrimaryDark) },
-            text = { Text("Apakah Anda yakin ingin keluar dari akun ini?", color = TextSecondaryDark) },
+            title = { Text("Konfirmasi Logout", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimaryDark) },
+            text = { Text("Apakah Anda yakin ingin keluar dari akun ini?", fontSize = 12.sp, lineHeight = 16.sp, color = TextSecondaryDark) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -741,12 +826,12 @@ fun SettingsScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = AccentRed)
                 ) {
-                    Text("Keluar", color = Color.White)
+                    Text("Keluar", color = Color.White, fontSize = 12.sp)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showLogoutDialog = false }) {
-                    Text("Batal", color = TextSecondaryDark)
+                    Text("Batal", color = TextSecondaryDark, fontSize = 12.sp)
                 }
             },
             containerColor = SurfaceDark
@@ -757,8 +842,8 @@ fun SettingsScreen(
     if (showRevokeOthersDialog) {
         AlertDialog(
             onDismissRequest = { showRevokeOthersDialog = false },
-            title = { Text("Sign Out Others", fontWeight = FontWeight.Bold, color = TextPrimaryDark) },
-            text = { Text("Cabut semua sesi lain? Anda akan tetap login di perangkat ini.", color = TextSecondaryDark) },
+            title = { Text("Sign Out Others", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimaryDark) },
+            text = { Text("Cabut semua sesi lain? Anda akan tetap login di perangkat ini.", fontSize = 12.sp, lineHeight = 16.sp, color = TextSecondaryDark) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -767,12 +852,12 @@ fun SettingsScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = AccentRed)
                 ) {
-                    Text("Cabut Sesi Lain", color = Color.White)
+                    Text("Cabut Sesi Lain", color = Color.White, fontSize = 12.sp)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showRevokeOthersDialog = false }) {
-                    Text("Batal", color = TextSecondaryDark)
+                    Text("Batal", color = TextSecondaryDark, fontSize = 12.sp)
                 }
             },
             containerColor = SurfaceDark
@@ -783,14 +868,19 @@ fun SettingsScreen(
     if (uiState.showMfaDisableDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.closeDisableMfaDialog() },
-            title = { Text("Nonaktifkan 2FA", fontWeight = FontWeight.Bold, color = TextPrimaryDark) },
+            title = { Text("Nonaktifkan 2FA", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimaryDark) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Masukkan 6-digit kode TOTP, Backup Code, atau Password akun Anda:", fontSize = 12.sp, color = TextSecondaryDark)
+                    Text(
+                        "Masukkan 6-digit kode TOTP, Backup Code, atau Password akun Anda:",
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
+                        color = TextSecondaryDark
+                    )
                     OutlinedTextField(
                         value = disableCodeInput,
                         onValueChange = { disableCodeInput = it },
-                        label = { Text("Kode / Password") },
+                        placeholder = { Text("Kode TOTP / Backup Code / Password", fontSize = 12.sp) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -804,12 +894,12 @@ fun SettingsScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = AccentRed)
                 ) {
-                    Text("Nonaktifkan", color = Color.White)
+                    Text("Nonaktifkan", color = Color.White, fontSize = 12.sp)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.closeDisableMfaDialog() }) {
-                    Text("Batal", color = TextSecondaryDark)
+                    Text("Batal", color = TextSecondaryDark, fontSize = 12.sp)
                 }
             },
             containerColor = SurfaceDark
@@ -820,10 +910,15 @@ fun SettingsScreen(
     if (uiState.showMfaSetupDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.closeMfaSetupDialog() },
-            title = { Text("Setup Two-Factor Authentication", fontWeight = FontWeight.Bold, color = TextPrimaryDark) },
+            title = { Text("Setup Two-Factor Authentication", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimaryDark) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("1. Masukkan Secret Key ini ke aplikasi Google Authenticator Anda:", fontSize = 12.sp, color = TextSecondaryDark)
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        "1. Masukkan Secret Key ini ke aplikasi Google Authenticator Anda:",
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
+                        color = TextSecondaryDark
+                    )
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -834,17 +929,23 @@ fun SettingsScreen(
                         Text(
                             text = uiState.mfaSecret ?: "",
                             fontSize = 13.sp,
+                            lineHeight = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = PrimaryBlue,
                             letterSpacing = 1.sp
                         )
                     }
 
-                    Text("2. Masukkan 6-digit kode konfirmasi dari Authenticator:", fontSize = 12.sp, color = TextSecondaryDark)
+                    Text(
+                        "2. Masukkan 6-digit kode konfirmasi dari Authenticator:",
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
+                        color = TextSecondaryDark
+                    )
                     OutlinedTextField(
                         value = enableCodeInput,
                         onValueChange = { enableCodeInput = it },
-                        label = { Text("6-digit TOTP") },
+                        placeholder = { Text("6-digit TOTP", fontSize = 12.sp) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -858,12 +959,12 @@ fun SettingsScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
                 ) {
-                    Text("Konfirmasi & Aktifkan")
+                    Text("Konfirmasi & Aktifkan", fontSize = 12.sp)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.closeMfaSetupDialog() }) {
-                    Text("Batal", color = TextSecondaryDark)
+                    Text("Batal", color = TextSecondaryDark, fontSize = 12.sp)
                 }
             },
             containerColor = SurfaceDark

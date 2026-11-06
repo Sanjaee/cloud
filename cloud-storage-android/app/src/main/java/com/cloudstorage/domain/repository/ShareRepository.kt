@@ -1,6 +1,7 @@
 package com.cloudstorage.domain.repository
 
 import com.cloudstorage.core.network.NetworkResult
+import com.cloudstorage.data.remote.dto.UserSearchItemDto
 import com.cloudstorage.domain.model.Collaborator
 import com.cloudstorage.domain.model.FileItem
 import com.cloudstorage.domain.model.FolderItem
@@ -26,5 +27,6 @@ interface ShareRepository {
     suspend fun getSharedByMe(): NetworkResult<Pair<List<FileItem>, List<FolderItem>>>
     suspend fun getCollaborators(resourceType: String, resourceId: String): NetworkResult<List<Collaborator>>
     suspend fun revokeCollaborator(resourceType: String, resourceId: String, userId: String): NetworkResult<Unit>
+    suspend fun createPublicLink(resourceType: String, resourceId: String): NetworkResult<String>
+    suspend fun searchUsers(query: String): NetworkResult<List<UserSearchItemDto>>
 }
-

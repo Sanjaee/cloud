@@ -19,6 +19,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.CreateNewFolder
+import androidx.compose.material.icons.outlined.PersonAdd
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.UploadFile
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -36,8 +38,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.cloudstorage.core.designsystem.*
 import com.cloudstorage.core.designsystem.components.*
-import com.cloudstorage.domain.model.FileItem
-import com.cloudstorage.domain.model.FolderItem
 import com.cloudstorage.navigation.NavigationTransitions
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,7 +45,7 @@ import com.cloudstorage.navigation.NavigationTransitions
 fun DriveScreen(
     onNavigateToSearch: () -> Unit,
     onNavigateToPreview: (String) -> Unit,
-    onNavigateToShare: (String, String) -> Unit, // type, id
+    onNavigateToShare: (String, String) -> Unit, // kept for signature compatibility
     onNavigateToSettings: () -> Unit = {},
     viewModel: DriveViewModel = hiltViewModel()
 ) {
@@ -69,9 +69,13 @@ fun DriveScreen(
         }
     }
 
-    // Handle Android system back button when inside a subfolder
-    BackHandler(enabled = uiState.currentFolderId != null) {
-        viewModel.navigateUp()
+    // Handle Android system back button when in selection mode or inside a subfolder
+    BackHandler(enabled = uiState.selectedFileIds.isNotEmpty() || uiState.selectedFolderIds.isNotEmpty() || uiState.currentFolderId != null) {
+        if (uiState.selectedFileIds.isNotEmpty() || uiState.selectedFolderIds.isNotEmpty()) {
+            viewModel.clearSelection()
+        } else {
+            viewModel.navigateUp()
+        }
     }
 
     // Show Snackbars for error or success notifications
@@ -90,13 +94,22 @@ fun DriveScreen(
     }
 
     val isSelecting = uiState.selectedFileIds.isNotEmpty() || uiState.selectedFolderIds.isNotEmpty()
+    val selectedCount = uiState.selectedFileIds.size + uiState.selectedFolderIds.size
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 navigationIcon = {
-                    if (uiState.currentFolderId != null) {
+                    if (isSelecting) {
+                        IconButton(onClick = { viewModel.clearSelection() }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Batal pilih",
+                                tint = TextPrimaryDark
+                            )
+                        }
+                    } else if (uiState.currentFolderId != null) {
                         IconButton(onClick = { viewModel.navigateUp() }) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -109,8 +122,9 @@ fun DriveScreen(
                 title = {
                     if (isSelecting) {
                         Text(
-                            text = "${uiState.selectedFileIds.size + uiState.selectedFolderIds.size} dipilih",
-                            fontSize = 16.sp,
+                            text = "$selectedCount dipilih",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
                             color = TextPrimaryDark
                         )
                     } else {
@@ -140,11 +154,16 @@ fun DriveScreen(
                                 tint = TextPrimaryDark
                             )
                         }
+                        // Share Selected Button in TopAppBar
+                        IconButton(onClick = { viewModel.openSelectedShareDialog() }) {
+                            Icon(
+                                imageVector = Icons.Outlined.PersonAdd,
+                                contentDescription = "Share Selected",
+                                tint = PrimaryBlue
+                            )
+                        }
                         IconButton(onClick = { viewModel.deleteSelectedItems() }) {
                             Icon(Icons.Default.Delete, "Delete selected", tint = AccentRed)
-                        }
-                        IconButton(onClick = { viewModel.clearSelection() }) {
-                            Icon(Icons.Default.Close, "Cancel selection", tint = TextSecondaryDark)
                         }
                     } else {
                         IconButton(onClick = onNavigateToSearch) {
@@ -176,239 +195,368 @@ fun DriveScreen(
             )
         },
         floatingActionButton = {
-            var fabExpanded by remember { mutableStateOf(false) }
+            if (!isSelecting) {
+                var fabExpanded by remember { mutableStateOf(false) }
 
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                if (fabExpanded) {
-                    SmallFloatingActionButton(
-                        onClick = {
-                            fabExpanded = false
-                            showCreateFolderDialog = true
-                        },
-                        containerColor = SurfaceElevatedDark,
-                        contentColor = TextPrimaryDark,
-                        shape = CircleShape
-                    ) {
-                        Icon(Icons.Outlined.CreateNewFolder, "New Folder")
-                    }
-
-                    SmallFloatingActionButton(
-                        onClick = {
-                            fabExpanded = false
-                            filePickerLauncher.launch("*/*")
-                        },
-                        containerColor = SurfaceElevatedDark,
-                        contentColor = TextPrimaryDark,
-                        shape = CircleShape
-                    ) {
-                        Icon(Icons.Outlined.UploadFile, "Upload File")
-                    }
-                }
-
-                FloatingActionButton(
-                    onClick = { fabExpanded = !fabExpanded },
-                    containerColor = PrimaryBlue,
-                    contentColor = Color.White,
-                    shape = CircleShape
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Icon(if (fabExpanded) Icons.Default.Close else Icons.Default.Add, "Actions")
+                    if (fabExpanded) {
+                        SmallFloatingActionButton(
+                            onClick = {
+                                fabExpanded = false
+                                showCreateFolderDialog = true
+                            },
+                            containerColor = SurfaceElevatedDark,
+                            contentColor = TextPrimaryDark,
+                            shape = CircleShape
+                        ) {
+                            Icon(Icons.Outlined.CreateNewFolder, "New Folder")
+                        }
+
+                        SmallFloatingActionButton(
+                            onClick = {
+                                fabExpanded = false
+                                filePickerLauncher.launch("*/*")
+                            },
+                            containerColor = SurfaceElevatedDark,
+                            contentColor = TextPrimaryDark,
+                            shape = CircleShape
+                        ) {
+                            Icon(Icons.Outlined.UploadFile, "Upload File")
+                        }
+                    }
+
+                    FloatingActionButton(
+                        onClick = { fabExpanded = !fabExpanded },
+                        containerColor = PrimaryBlue,
+                        contentColor = Color.White,
+                        shape = CircleShape
+                    ) {
+                        Icon(if (fabExpanded) Icons.Default.Close else Icons.Default.Add, "Actions")
+                    }
                 }
             }
         },
         containerColor = BackgroundDark
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Breadcrumbs Bar
-            BreadcrumbBar(
-                breadcrumbs = uiState.breadcrumbs,
-                onBreadcrumbClick = { folderId -> viewModel.openFolder(folderId) }
-            )
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Breadcrumbs Bar
+                BreadcrumbBar(
+                    breadcrumbs = uiState.breadcrumbs,
+                    onBreadcrumbClick = { folderId -> viewModel.openFolder(folderId) }
+                )
 
-            // Live Upload Progress Indicator Banner
-            if (uiState.isUploading) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
-                    colors = CardDefaults.cardColors(containerColor = SurfaceElevatedDark),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                // Live Upload Progress Indicator Banner
+                if (uiState.isUploading) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                        colors = CardDefaults.cardColors(containerColor = SurfaceElevatedDark),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = PrimaryBlue
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Mengunggah \"${uiState.uploadingFileName ?: "file"}\"...",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = TextPrimaryDark
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                LinearProgressIndicator(
+                                    progress = { uiState.uploadProgress / 100f },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(4.dp)
+                                        .clip(RoundedCornerShape(2.dp)),
+                                    color = PrimaryBlue,
+                                    trackColor = BorderDark
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Pull-To-Refresh Container wrapping the Content Grid
+                val pullRefreshState = rememberPullToRefreshState()
+                PullToRefreshBox(
+                    isRefreshing = uiState.isRefreshing,
+                    onRefresh = { viewModel.pullRefresh() },
+                    modifier = Modifier.fillMaxSize(),
+                    indicator = {
+                        PullToRefreshDefaults.Indicator(
+                            state = pullRefreshState,
+                            isRefreshing = uiState.isRefreshing,
+                            modifier = Modifier.align(Alignment.TopCenter),
+                            containerColor = SurfaceElevatedDark,
                             color = PrimaryBlue
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Mengunggah \"${uiState.uploadingFileName ?: "file"}\"...",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = TextPrimaryDark
+                    }
+                ) {
+                    // Content Grid with smooth Gojek-style slide transition between folders
+                    AnimatedContent(
+                        targetState = uiState.currentFolderId,
+                        transitionSpec = {
+                            slideInHorizontally(
+                                initialOffsetX = { fullWidth -> fullWidth },
+                                animationSpec = tween(
+                                    durationMillis = NavigationTransitions.DURATION_SLIDE,
+                                    easing = NavigationTransitions.StandardEasing
+                                )
+                            ) + fadeIn(
+                                animationSpec = tween(NavigationTransitions.DURATION_FADE)
+                            ) togetherWith slideOutHorizontally(
+                                targetOffsetX = { fullWidth -> -fullWidth / 3 },
+                                animationSpec = tween(
+                                    durationMillis = NavigationTransitions.DURATION_SLIDE,
+                                    easing = NavigationTransitions.StandardEasing
+                                )
+                            ) + fadeOut(
+                                animationSpec = tween(NavigationTransitions.DURATION_FADE)
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            LinearProgressIndicator(
-                                progress = { uiState.uploadProgress / 100f },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(4.dp)
-                                    .clip(RoundedCornerShape(2.dp)),
-                                color = PrimaryBlue,
-                                trackColor = BorderDark
+                        },
+                        label = "drive_folder_transition",
+                        modifier = Modifier.fillMaxSize()
+                    ) { _ ->
+                        if (uiState.isLoading && uiState.folders.isEmpty() && uiState.files.isEmpty()) {
+                            DriveSkeletonGrid()
+                        } else if (uiState.folders.isEmpty() && uiState.files.isEmpty()) {
+                            EmptyStateView(
+                                title = "Folder ini kosong",
+                                description = "Gunakan tombol + untuk mengunggah file baru atau membuat folder."
                             )
+                        } else {
+                            LazyVerticalGrid(
+                                columns = GridCells.Fixed(2),
+                                contentPadding = PaddingValues(
+                                    start = 16.dp,
+                                    end = 16.dp,
+                                    top = 16.dp,
+                                    bottom = if (isSelecting) 88.dp else 16.dp
+                                ),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                // Folders Section
+                                if (uiState.folders.isNotEmpty()) {
+                                    item(span = { GridItemSpan(2) }) {
+                                        Text(
+                                            text = "Folders",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = TextMutedDark,
+                                            modifier = Modifier.padding(bottom = 4.dp)
+                                        )
+                                    }
+
+                                    items(uiState.folders, key = { "folder_${it.id}" }) { folder ->
+                                        val isSelected = uiState.selectedFolderIds.contains(folder.id)
+                                        FolderCard(
+                                            folder = folder,
+                                            isSelected = isSelected,
+                                            onClick = {
+                                                if (isSelecting) {
+                                                    viewModel.toggleFolderSelection(folder.id)
+                                                } else {
+                                                    viewModel.openFolder(folder.id)
+                                                }
+                                            },
+                                            onLongClick = { viewModel.toggleFolderSelection(folder.id) },
+                                            onStarClick = { viewModel.toggleStarFolder(folder) },
+                                            onShareClick = {
+                                                viewModel.openSingleShareDialog("folder", folder.id, folder.name)
+                                            },
+                                            onRenameClick = {
+                                                itemToRename = Triple("folder", folder.id, folder.name)
+                                                renameInput = folder.name
+                                            },
+                                            onDeleteClick = {
+                                                itemToDelete = Pair("folder", folder.id)
+                                            }
+                                        )
+                                    }
+                                }
+
+                                // Files Section
+                                if (uiState.files.isNotEmpty()) {
+                                    item(span = { GridItemSpan(2) }) {
+                                        Text(
+                                            text = "Files",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = TextMutedDark,
+                                            modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
+                                        )
+                                    }
+
+                                    items(uiState.files, key = { "file_${it.id}" }) { file ->
+                                        val isSelected = uiState.selectedFileIds.contains(file.id)
+                                        FileCard(
+                                            file = file,
+                                            isSelected = isSelected,
+                                            accessToken = viewModel.accessToken,
+                                            onClick = {
+                                                if (isSelecting) {
+                                                    viewModel.toggleFileSelection(file.id)
+                                                } else {
+                                                    onNavigateToPreview(file.id)
+                                                }
+                                            },
+                                            onLongClick = { viewModel.toggleFileSelection(file.id) },
+                                            onStarClick = { viewModel.toggleStarFile(file) },
+                                            onDownloadClick = { viewModel.downloadFile(file) },
+                                            onShareClick = {
+                                                viewModel.openSingleShareDialog("file", file.id, file.name)
+                                            },
+                                            onRenameClick = {
+                                                itemToRename = Triple("file", file.id, file.name)
+                                                renameInput = file.name
+                                            },
+                                            onDeleteClick = {
+                                                itemToDelete = Pair("file", file.id)
+                                            }
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
 
-            // Pull-To-Refresh Container wrapping the Content Grid
-            val pullRefreshState = rememberPullToRefreshState()
-            PullToRefreshBox(
-                isRefreshing = uiState.isRefreshing,
-                onRefresh = { viewModel.pullRefresh() },
-                modifier = Modifier.fillMaxSize(),
-                indicator = {
-                    PullToRefreshDefaults.Indicator(
-                        state = pullRefreshState,
-                        isRefreshing = uiState.isRefreshing,
-                        modifier = Modifier.align(Alignment.TopCenter),
-                        containerColor = SurfaceElevatedDark,
-                        color = PrimaryBlue
-                    )
-                }
+            // Bottom Selection Action Bar (shown when items are selected or Select All is clicked)
+            AnimatedVisibility(
+                visible = isSelecting,
+                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
-                // Content Grid with smooth Gojek-style slide transition between folders
-                AnimatedContent(
-                    targetState = uiState.currentFolderId,
-                    transitionSpec = {
-                        slideInHorizontally(
-                            initialOffsetX = { fullWidth -> fullWidth },
-                            animationSpec = tween(
-                                durationMillis = NavigationTransitions.DURATION_SLIDE,
-                                easing = NavigationTransitions.StandardEasing
-                            )
-                        ) + fadeIn(
-                            animationSpec = tween(NavigationTransitions.DURATION_FADE)
-                        ) togetherWith slideOutHorizontally(
-                            targetOffsetX = { fullWidth -> -fullWidth / 3 },
-                            animationSpec = tween(
-                                durationMillis = NavigationTransitions.DURATION_SLIDE,
-                                easing = NavigationTransitions.StandardEasing
-                            )
-                        ) + fadeOut(
-                            animationSpec = tween(NavigationTransitions.DURATION_FADE)
-                        )
-                    },
-                    label = "drive_folder_transition",
-                    modifier = Modifier.fillMaxSize()
-                ) { _ ->
-                    if (uiState.isLoading && uiState.folders.isEmpty() && uiState.files.isEmpty()) {
-                        DriveSkeletonGrid()
-                    } else if (uiState.folders.isEmpty() && uiState.files.isEmpty()) {
-                        EmptyStateView(
-                            title = "Folder ini kosong",
-                            description = "Gunakan tombol + untuk mengunggah file baru atau membuat folder."
-                        )
-                    } else {
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
-                            contentPadding = PaddingValues(16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            modifier = Modifier.fillMaxSize()
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color(0xFF18181B))
+                        .border(1.dp, BorderDark, RoundedCornerShape(14.dp))
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "$selectedCount item dipilih",
+                        fontSize = 13.sp,
+                        lineHeight = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextPrimaryDark
+                    )
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { viewModel.openSelectedShareDialog() },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White,
+                                contentColor = Color(0xFF09090B)
+                            ),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                            modifier = Modifier.height(34.dp)
                         ) {
-                            // Folders Section
-                            if (uiState.folders.isNotEmpty()) {
-                                item(span = { GridItemSpan(2) }) {
-                                    Text(
-                                        text = "Folders",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = TextMutedDark,
-                                        modifier = Modifier.padding(bottom = 4.dp)
-                                    )
-                                }
+                            Icon(
+                                imageVector = Icons.Outlined.Share,
+                                contentDescription = null,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Share",
+                                fontSize = 12.sp,
+                                lineHeight = 15.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
 
-                                items(uiState.folders, key = { "folder_${it.id}" }) { folder ->
-                                    val isSelected = uiState.selectedFolderIds.contains(folder.id)
-                                    FolderCard(
-                                        folder = folder,
-                                        isSelected = isSelected,
-                                        onClick = {
-                                            if (isSelecting) {
-                                                viewModel.toggleFolderSelection(folder.id)
-                                            } else {
-                                                viewModel.openFolder(folder.id)
-                                            }
-                                        },
-                                        onLongClick = { viewModel.toggleFolderSelection(folder.id) },
-                                        onStarClick = { viewModel.toggleStarFolder(folder) },
-                                        onRenameClick = {
-                                            itemToRename = Triple("folder", folder.id, folder.name)
-                                            renameInput = folder.name
-                                        },
-                                        onDeleteClick = {
-                                            itemToDelete = Pair("folder", folder.id)
-                                        }
-                                    )
-                                }
-                            }
-
-                            // Files Section
-                            if (uiState.files.isNotEmpty()) {
-                                item(span = { GridItemSpan(2) }) {
-                                    Text(
-                                        text = "Files",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = TextMutedDark,
-                                        modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
-                                    )
-                                }
-
-                                items(uiState.files, key = { "file_${it.id}" }) { file ->
-                                    val isSelected = uiState.selectedFileIds.contains(file.id)
-                                    FileCard(
-                                        file = file,
-                                        isSelected = isSelected,
-                                        accessToken = viewModel.accessToken,
-                                        onClick = {
-                                            if (isSelecting) {
-                                                viewModel.toggleFileSelection(file.id)
-                                            } else {
-                                                onNavigateToPreview(file.id)
-                                            }
-                                        },
-                                        onLongClick = { viewModel.toggleFileSelection(file.id) },
-                                        onStarClick = { viewModel.toggleStarFile(file) },
-                                        onDownloadClick = { viewModel.downloadFile(file) },
-                                        onShareClick = { onNavigateToShare("file", file.id) },
-                                        onRenameClick = {
-                                            itemToRename = Triple("file", file.id, file.name)
-                                            renameInput = file.name
-                                        },
-                                        onDeleteClick = {
-                                            itemToDelete = Pair("file", file.id)
-                                        }
-                                    )
-                                }
-                            }
+                        OutlinedButton(
+                            onClick = { viewModel.deleteSelectedItems() },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentRed),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, AccentRed.copy(alpha = 0.5f)),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                            modifier = Modifier.height(34.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DeleteOutline,
+                                contentDescription = null,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Hapus",
+                                fontSize = 12.sp,
+                                lineHeight = 15.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
                     }
                 }
             }
         }
+    }
+
+    // Native Share Modal Dialog (Single item or Batch Selected items)
+    if (uiState.showShareDialog) {
+        val dialogTitle = if (uiState.isBatchShare) {
+            "Share ${uiState.shareResourceName}"
+        } else {
+            "Share \"${uiState.shareResourceName}\""
+        }
+        val dialogSubtitle = if (uiState.isBatchShare) {
+            "Simultaneous collaborator access"
+        } else {
+            "Native Cloudflare R2 zero-copy sharing"
+        }
+
+        ShareDialog(
+            title = dialogTitle,
+            subtitle = dialogSubtitle,
+            isBatch = uiState.isBatchShare,
+            collaborators = uiState.collaborators,
+            searchResults = uiState.shareUserSearchResults,
+            publicLinkUrl = uiState.publicLinkUrl,
+            isSharing = uiState.isSharingAction,
+            errorMessage = uiState.shareErrorMessage,
+            successMessage = uiState.shareSuccessMessage,
+            onSearchQueryChange = { viewModel.searchUsersForShare(it) },
+            onClearSearchResults = { viewModel.clearShareSearchResults() },
+            onShareSubmit = { recipient, permission, msg ->
+                viewModel.submitShare(recipient, permission, msg)
+            },
+            onRevokeCollaborator = { userId ->
+                viewModel.revokeCollaborator(userId)
+            },
+            onDismiss = { viewModel.closeShareDialog() }
+        )
     }
 
     // Create Folder Dialog
