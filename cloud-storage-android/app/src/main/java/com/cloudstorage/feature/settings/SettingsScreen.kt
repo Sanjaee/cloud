@@ -1,7 +1,17 @@
 package com.cloudstorage.feature.settings
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
+import android.graphics.BitmapFactory
+import android.net.Uri
+import android.util.Base64
+import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -17,10 +27,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,6 +51,7 @@ fun SettingsScreen(
     onNavigateBack: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
 
     var showLogoutDialog by remember { mutableStateOf(false) }
@@ -49,7 +65,14 @@ fun SettingsScreen(
 
     // 2FA Dialog inputs
     var disableCodeInput by remember { mutableStateOf("") }
+    var disablePasswordInput by remember { mutableStateOf("") }
     var enableCodeInput by remember { mutableStateOf("") }
+
+    fun copyToClipboard(label: String, text: String, toastMsg: String) {
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText(label, text))
+        Toast.makeText(context, toastMsg, Toast.LENGTH_SHORT).show()
+    }
 
     LaunchedEffect(uiState.isLoggedOut) {
         if (uiState.isLoggedOut) {
@@ -500,79 +523,114 @@ fun SettingsScreen(
 
                         if (uiState.isMfaEnabled) {
                             // Compact Protected Status Card
-                            Row(
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .background(AccentEmerald.copy(alpha = 0.08f), RoundedCornerShape(10.dp))
                                     .border(1.dp, AccentEmerald.copy(alpha = 0.25f), RoundedCornerShape(10.dp))
                                     .padding(horizontal = 12.dp, vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Row(
+                                    modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    modifier = Modifier.weight(1f)
+                                    horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(28.dp)
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(AccentEmerald.copy(alpha = 0.15f)),
-                                        contentAlignment = Alignment.Center
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier.weight(1f)
                                     ) {
-                                        Icon(
-                                            Icons.Default.Shield,
-                                            null,
-                                            tint = AccentEmerald,
-                                            modifier = Modifier.size(15.dp)
-                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .size(28.dp)
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(AccentEmerald.copy(alpha = 0.15f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Shield,
+                                                null,
+                                                tint = AccentEmerald,
+                                                modifier = Modifier.size(15.dp)
+                                            )
+                                        }
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = "Akun Anda Dilindungi 2FA",
+                                                fontWeight = FontWeight.SemiBold,
+                                                fontSize = 12.sp,
+                                                lineHeight = 15.sp,
+                                                color = TextPrimaryDark,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Text(
+                                                text = "Kode TOTP ponsel aktif untuk setiap sesi login.",
+                                                fontSize = 10.sp,
+                                                lineHeight = 13.sp,
+                                                color = TextSecondaryDark,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
                                     }
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = "Akun Anda Dilindungi 2FA",
-                                            fontWeight = FontWeight.SemiBold,
-                                            fontSize = 12.sp,
-                                            lineHeight = 15.sp,
-                                            color = TextPrimaryDark,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                        Text(
-                                            text = "Kode TOTP ponsel aktif untuk setiap sesi login.",
-                                            fontSize = 10.sp,
-                                            lineHeight = 13.sp,
-                                            color = TextSecondaryDark,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        if (uiState.backupCodes.isNotEmpty()) {
+                                            OutlinedButton(
+                                                onClick = { viewModel.openBackupCodesDialog() },
+                                                colors = ButtonDefaults.outlinedButtonColors(
+                                                    containerColor = SurfaceElevatedDark,
+                                                    contentColor = TextPrimaryDark
+                                                ),
+                                                border = androidx.compose.foundation.BorderStroke(1.dp, BorderDark),
+                                                shape = RoundedCornerShape(6.dp),
+                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                                modifier = Modifier.height(28.dp)
+                                            ) {
+                                                Text(
+                                                    text = "Backup Codes",
+                                                    fontSize = 10.sp,
+                                                    lineHeight = 12.sp,
+                                                    fontWeight = FontWeight.SemiBold
+                                                )
+                                            }
+                                        }
+
+                                        OutlinedButton(
+                                            onClick = { viewModel.openDisableMfaDialog() },
+                                            colors = ButtonDefaults.outlinedButtonColors(
+                                                containerColor = AccentRed.copy(alpha = 0.08f),
+                                                contentColor = AccentRed
+                                            ),
+                                            border = androidx.compose.foundation.BorderStroke(1.dp, AccentRed.copy(alpha = 0.45f)),
+                                            shape = RoundedCornerShape(6.dp),
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                            modifier = Modifier.height(28.dp)
+                                        ) {
+                                            Text(
+                                                text = "Nonaktifkan 2FA",
+                                                fontSize = 10.sp,
+                                                lineHeight = 12.sp,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                        }
                                     }
-                                }
-
-                                Spacer(modifier = Modifier.width(8.dp))
-
-                                OutlinedButton(
-                                    onClick = { viewModel.openDisableMfaDialog() },
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        containerColor = AccentRed.copy(alpha = 0.08f),
-                                        contentColor = AccentRed
-                                    ),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, AccentRed.copy(alpha = 0.45f)),
-                                    shape = RoundedCornerShape(6.dp),
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                    modifier = Modifier.height(28.dp)
-                                ) {
-                                    Text(
-                                        text = "Nonaktifkan 2FA",
-                                        fontSize = 10.sp,
-                                        lineHeight = 12.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
                                 }
                             }
-                        } else {
+                        } else if (uiState.mfaSecret == null) {
                             Button(
-                                onClick = { viewModel.openMfaSetupDialog() },
+                                onClick = {
+                                    enableCodeInput = ""
+                                    viewModel.openMfaSetupDialog(regenerate = false)
+                                },
+                                enabled = !uiState.isActionLoading,
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = Color.White,
                                     contentColor = Color(0xFF09090B)
@@ -582,14 +640,284 @@ fun SettingsScreen(
                                     .fillMaxWidth()
                                     .height(36.dp)
                             ) {
-                                Icon(Icons.Default.Security, null, modifier = Modifier.size(15.dp))
-                                Spacer(Modifier.width(6.dp))
+                                if (uiState.isActionLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(14.dp),
+                                        strokeWidth = 2.dp,
+                                        color = Color(0xFF09090B)
+                                    )
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("Menyiapkan...", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                } else {
+                                    Icon(Icons.Default.QrCode, null, modifier = Modifier.size(15.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text(
+                                        text = "Setup Two-Factor Authentication",
+                                        fontSize = 12.sp,
+                                        lineHeight = 15.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
+                        } else {
+                            // Inline MFA Setup Wizard ("Scan QR Code Dengan Authenticator")
+                            val qrBitmap = remember(uiState.mfaQrDataUrl) {
+                                decodeBase64QrBitmap(uiState.mfaQrDataUrl)
+                            }
+
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFF16161A), RoundedCornerShape(10.dp))
+                                    .border(1.dp, BorderDark, RoundedCornerShape(10.dp))
+                                    .padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                // Header: Scan QR Code Dengan Authenticator + Refresh QR + Close
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.QrCode,
+                                            contentDescription = null,
+                                            tint = TextSecondaryDark,
+                                            modifier = Modifier.size(15.dp)
+                                        )
+                                        Text(
+                                            text = "Scan QR Code Dengan Authenticator",
+                                            fontSize = 12.sp,
+                                            lineHeight = 15.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = TextPrimaryDark,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        TextButton(
+                                            onClick = { viewModel.openMfaSetupDialog(regenerate = true) },
+                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                            modifier = Modifier.height(26.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Refresh,
+                                                contentDescription = "Refresh QR",
+                                                tint = TextSecondaryDark,
+                                                modifier = Modifier.size(12.dp)
+                                            )
+                                            Spacer(Modifier.width(4.dp))
+                                            Text(
+                                                text = "Refresh QR",
+                                                fontSize = 10.sp,
+                                                color = TextSecondaryDark
+                                            )
+                                        }
+
+                                        IconButton(
+                                            onClick = { viewModel.closeMfaSetupDialog() },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "Tutup",
+                                                tint = TextSecondaryDark,
+                                                modifier = Modifier.size(15.dp)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                // QR Code Image Centered in White Card
+                                if (qrBitmap != null) {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(148.dp)
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(Color.White)
+                                                .border(1.dp, Color(0xFFD4D4D8), RoundedCornerShape(10.dp))
+                                                .padding(8.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Image(
+                                                bitmap = qrBitmap,
+                                                contentDescription = "MFA QR Code",
+                                                contentScale = ContentScale.Fit,
+                                                modifier = Modifier.fillMaxSize()
+                                            )
+                                        }
+                                    }
+                                }
+
                                 Text(
-                                    text = "Enable Two-Factor Authentication",
-                                    fontSize = 12.sp,
-                                    lineHeight = 15.sp,
-                                    fontWeight = FontWeight.SemiBold
+                                    text = "Pindai QR code dengan Google Authenticator atau Authy, atau salin secret key:",
+                                    fontSize = 11.sp,
+                                    lineHeight = 14.sp,
+                                    color = TextSecondaryDark
                                 )
+
+                                // Secret Key + Copy Button + Open in Authenticator App
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .background(BackgroundDark, RoundedCornerShape(8.dp))
+                                            .border(1.dp, BorderDark, RoundedCornerShape(8.dp))
+                                            .padding(horizontal = 10.dp, vertical = 8.dp)
+                                    ) {
+                                        Text(
+                                            text = uiState.mfaSecret ?: "",
+                                            fontSize = 12.sp,
+                                            lineHeight = 15.sp,
+                                            fontFamily = FontFamily.Monospace,
+                                            fontWeight = FontWeight.Bold,
+                                            color = TextPrimaryDark,
+                                            letterSpacing = 1.sp
+                                        )
+                                    }
+
+                                    IconButton(
+                                        onClick = {
+                                            val secret = uiState.mfaSecret ?: ""
+                                            copyToClipboard("TOTP Secret", secret, "Secret key disalin ke clipboard")
+                                        },
+                                        modifier = Modifier
+                                            .size(34.dp)
+                                            .background(BackgroundDark, RoundedCornerShape(8.dp))
+                                            .border(1.dp, BorderDark, RoundedCornerShape(8.dp))
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.ContentCopy,
+                                            contentDescription = "Copy Secret Key",
+                                            tint = TextSecondaryDark,
+                                            modifier = Modifier.size(15.dp)
+                                        )
+                                    }
+                                }
+
+                                if (!uiState.mfaOtpauthUrl.isNullOrBlank()) {
+                                    OutlinedButton(
+                                        onClick = {
+                                            try {
+                                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uiState.mfaOtpauthUrl)))
+                                            } catch (_: Exception) {
+                                                Toast.makeText(context, "Aplikasi Authenticator belum terpasang", Toast.LENGTH_SHORT).show()
+                                            }
+                                        },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(32.dp),
+                                        shape = RoundedCornerShape(7.dp),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderDark),
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp)
+                                    ) {
+                                        Icon(Icons.Default.OpenInNew, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(13.dp))
+                                        Spacer(Modifier.width(6.dp))
+                                        Text(
+                                            text = "Buka Langsung di Aplikasi Authenticator",
+                                            fontSize = 11.sp,
+                                            color = PrimaryBlue,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                }
+
+                                // 6-digit verification code input + Confirm & Enable button
+                                Text(
+                                    text = "Masukkan 6-digit kode verifikasi:",
+                                    fontSize = 11.sp,
+                                    lineHeight = 14.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = TextPrimaryDark
+                                )
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    OutlinedTextField(
+                                        value = enableCodeInput,
+                                        onValueChange = { input ->
+                                            enableCodeInput = input.filter { it.isDigit() }.take(6)
+                                        },
+                                        placeholder = {
+                                            Text(
+                                                "123456",
+                                                fontSize = 12.sp,
+                                                color = TextMutedDark
+                                            )
+                                        },
+                                        singleLine = true,
+                                        textStyle = TextStyle(
+                                            fontSize = 13.sp,
+                                            fontFamily = FontFamily.Monospace,
+                                            fontWeight = FontWeight.Bold,
+                                            color = TextPrimaryDark,
+                                            letterSpacing = 2.sp,
+                                            textAlign = TextAlign.Center
+                                        ),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedContainerColor = BackgroundDark,
+                                            unfocusedContainerColor = BackgroundDark,
+                                            focusedBorderColor = PrimaryBlue,
+                                            unfocusedBorderColor = BorderDark
+                                        ),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.weight(1f)
+                                    )
+
+                                    Button(
+                                        onClick = {
+                                            viewModel.confirmEnableMfa(enableCodeInput)
+                                            enableCodeInput = ""
+                                        },
+                                        enabled = !uiState.isActionLoading && enableCodeInput.length == 6,
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color.White,
+                                            contentColor = Color(0xFF09090B),
+                                            disabledContainerColor = Color(0xFF27272A),
+                                            disabledContentColor = Color(0xFF71717A)
+                                        ),
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                                        modifier = Modifier.height(48.dp)
+                                    ) {
+                                        if (uiState.isActionLoading) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(14.dp),
+                                                strokeWidth = 2.dp,
+                                                color = Color(0xFF09090B)
+                                            )
+                                        } else {
+                                            Icon(Icons.Default.Check, null, modifier = Modifier.size(14.dp))
+                                            Spacer(Modifier.width(5.dp))
+                                            Text(
+                                                text = "Confirm & Enable",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -868,19 +1196,37 @@ fun SettingsScreen(
     if (uiState.showMfaDisableDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.closeDisableMfaDialog() },
-            title = { Text("Nonaktifkan 2FA", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimaryDark) },
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = AccentRed, modifier = Modifier.size(18.dp))
+                    Text("Nonaktifkan 2FA", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = AccentRed)
+                }
+            },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        "Masukkan 6-digit kode TOTP, Backup Code, atau Password akun Anda:",
-                        fontSize = 12.sp,
-                        lineHeight = 16.sp,
+                        "Masukkan kode TOTP dari ponsel, backup code, atau password akun untuk menonaktifkan 2FA:",
+                        fontSize = 11.sp,
+                        lineHeight = 15.sp,
                         color = TextSecondaryDark
                     )
                     OutlinedTextField(
                         value = disableCodeInput,
                         onValueChange = { disableCodeInput = it },
-                        placeholder = { Text("Kode TOTP / Backup Code / Password", fontSize = 12.sp) },
+                        label = { Text("Kode TOTP atau Backup Code", fontSize = 11.sp) },
+                        placeholder = { Text("123456 atau 62FA-EA8D", fontSize = 12.sp) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = disablePasswordInput,
+                        onValueChange = { disablePasswordInput = it },
+                        label = { Text("Password Akun (opsional)", fontSize = 11.sp) },
+                        placeholder = { Text("••••••••", fontSize = 12.sp) },
+                        visualTransformation = PasswordVisualTransformation(),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -889,12 +1235,14 @@ fun SettingsScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.disableMfa(disableCodeInput)
+                        viewModel.disableMfa(disableCodeInput, disablePasswordInput)
                         disableCodeInput = ""
+                        disablePasswordInput = ""
                     },
+                    enabled = !uiState.isActionLoading && (disableCodeInput.isNotBlank() || disablePasswordInput.isNotBlank()),
                     colors = ButtonDefaults.buttonColors(containerColor = AccentRed)
                 ) {
-                    Text("Nonaktifkan", color = Color.White, fontSize = 12.sp)
+                    Text("Konfirmasi Nonaktifkan", color = Color.White, fontSize = 12.sp)
                 }
             },
             dismissButton = {
@@ -906,69 +1254,151 @@ fun SettingsScreen(
         )
     }
 
-    // Setup 2FA Dialog
-    if (uiState.showMfaSetupDialog) {
+    // Backup Codes Modal Popup ("2FA Berhasil Diaktifkan! 🎉")
+    if (uiState.showBackupCodesDialog && uiState.backupCodes.isNotEmpty()) {
         AlertDialog(
-            onDismissRequest = { viewModel.closeMfaSetupDialog() },
-            title = { Text("Setup Two-Factor Authentication", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimaryDark) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        "1. Masukkan Secret Key ini ke aplikasi Google Authenticator Anda:",
-                        fontSize = 12.sp,
-                        lineHeight = 16.sp,
-                        color = TextSecondaryDark
-                    )
+            onDismissRequest = { viewModel.closeBackupCodesDialog() },
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     Box(
                         modifier = Modifier
+                            .size(30.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(AccentEmerald.copy(alpha = 0.18f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = AccentEmerald, modifier = Modifier.size(16.dp))
+                    }
+                    Column {
+                        Text(
+                            text = "2FA Berhasil Diaktifkan!",
+                            fontSize = 14.sp,
+                            lineHeight = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimaryDark
+                        )
+                        Text(
+                            text = "Simpan 10 Backup Codes ini di tempat yang aman.",
+                            fontSize = 11.sp,
+                            lineHeight = 14.sp,
+                            color = TextSecondaryDark
+                        )
+                    }
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(
+                        modifier = Modifier
                             .fillMaxWidth()
-                            .background(SurfaceElevatedDark, RoundedCornerShape(8.dp))
+                            .background(Color(0xFF16161A), RoundedCornerShape(8.dp))
                             .border(1.dp, BorderDark, RoundedCornerShape(8.dp))
-                            .padding(10.dp)
+                            .padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
-                            text = uiState.mfaSecret ?: "",
-                            fontSize = 13.sp,
-                            lineHeight = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PrimaryBlue,
-                            letterSpacing = 1.sp
+                            text = "Gunakan backup code ini jika Anda kehilangan akses ke aplikasi authenticator di ponsel Anda.",
+                            fontSize = 11.sp,
+                            lineHeight = 14.sp,
+                            color = TextSecondaryDark
+                        )
+                        Text(
+                            text = "*Gunakan 1 kode per login (setiap kode hanya bisa digunakan sekali). Ketuk salah satu kode di bawah untuk menyalinnya.",
+                            fontSize = 10.sp,
+                            lineHeight = 13.sp,
+                            color = AccentEmerald,
+                            fontWeight = FontWeight.Medium
                         )
                     }
 
-                    Text(
-                        "2. Masukkan 6-digit kode konfirmasi dari Authenticator:",
-                        fontSize = 12.sp,
-                        lineHeight = 16.sp,
-                        color = TextSecondaryDark
-                    )
-                    OutlinedTextField(
-                        value = enableCodeInput,
-                        onValueChange = { enableCodeInput = it },
-                        placeholder = { Text("6-digit TOTP", fontSize = 12.sp) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    // 2-Column Grid of 10 Backup Codes
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(BackgroundDark, RoundedCornerShape(8.dp))
+                            .border(1.dp, BorderDark, RoundedCornerShape(8.dp))
+                            .padding(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        uiState.backupCodes.chunked(2).forEach { rowCodes ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                rowCodes.forEach { code ->
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(SurfaceDark)
+                                            .border(1.dp, BorderDark, RoundedCornerShape(6.dp))
+                                            .clickable {
+                                                copyToClipboard("Backup Code", code, "Kode $code berhasil disalin!")
+                                            }
+                                            .padding(vertical = 7.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = code,
+                                            fontSize = 12.sp,
+                                            fontFamily = FontFamily.Monospace,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = TextPrimaryDark
+                                        )
+                                    }
+                                }
+                                if (rowCodes.size == 1) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
+                        }
+                    }
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        viewModel.confirmEnableMfa(enableCodeInput)
-                        enableCodeInput = ""
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
-                ) {
-                    Text("Konfirmasi & Aktifkan", fontSize = 12.sp)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.closeMfaSetupDialog() }) {
-                    Text("Batal", color = TextSecondaryDark, fontSize = 12.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = {
+                            val allCodes = uiState.backupCodes.joinToString("\n")
+                            copyToClipboard("Backup Codes", allCodes, "10 Backup Codes berhasil disalin!")
+                        },
+                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderDark),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp), tint = TextPrimaryDark)
+                        Spacer(Modifier.width(5.dp))
+                        Text("Copy All", color = TextPrimaryDark, fontSize = 12.sp)
+                    }
+
+                    Button(
+                        onClick = { viewModel.closeBackupCodesDialog() },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White,
+                            contentColor = Color(0xFF09090B)
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Done", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             },
             containerColor = SurfaceDark
         )
+    }
+}
+
+private fun decodeBase64QrBitmap(dataUrl: String?): androidx.compose.ui.graphics.ImageBitmap? {
+    if (dataUrl.isNullOrBlank()) return null
+    return try {
+        val base64Part = dataUrl.substringAfter("base64,", dataUrl)
+        val bytes = Base64.decode(base64Part, Base64.DEFAULT)
+        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        bitmap?.asImageBitmap()
+    } catch (_: Exception) {
+        null
     }
 }
 

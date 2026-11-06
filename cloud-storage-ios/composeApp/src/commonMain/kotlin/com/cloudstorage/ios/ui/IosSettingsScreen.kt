@@ -301,7 +301,9 @@ fun IosSettingsScreen(
                                 shape = RoundedCornerShape(8.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
                             ) {
-                                Text("Aktifkan 2FA (TOTP)", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                Icon(Icons.Default.QrCode, contentDescription = null, modifier = Modifier.size(15.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Setup Two-Factor Authentication", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                             }
                         } else {
                             Column(
@@ -309,10 +311,40 @@ fun IosSettingsScreen(
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(10.dp))
                                     .background(SurfaceElevatedDark)
-                                    .padding(10.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    .border(1.dp, BorderDark, RoundedCornerShape(10.dp))
+                                    .padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Text("Salin Secret Key ini ke Google Authenticator:", color = TextSecondaryDark, fontSize = 11.sp)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(Icons.Default.QrCode, contentDescription = null, tint = TextSecondaryDark, modifier = Modifier.size(15.dp))
+                                        Text(
+                                            text = "Scan QR Code Dengan Authenticator",
+                                            color = TextPrimaryDark,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = { mfaSetupData = null },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Icon(Icons.Default.Close, contentDescription = "Close", tint = TextSecondaryDark, modifier = Modifier.size(15.dp))
+                                    }
+                                }
+
+                                Text(
+                                    text = "Pindai QR code dengan Google Authenticator atau Authy, atau salin secret key:",
+                                    color = TextSecondaryDark,
+                                    fontSize = 11.sp
+                                )
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically,
@@ -329,17 +361,26 @@ fun IosSettingsScreen(
                                     IconButton(
                                         onClick = {
                                             PlatformBridge.copyToClipboard(mfaSetupData!!.secret)
-                                            onMessage("Secret key disalin")
+                                            onMessage("Secret key disalin ke clipboard")
                                         },
                                         modifier = Modifier.size(26.dp)
                                     ) {
                                         Icon(Icons.Default.ContentCopy, contentDescription = "Copy", tint = TextPrimaryDark, modifier = Modifier.size(14.dp))
                                     }
                                 }
+                                if (!mfaSetupData!!.otpauthUrl.isNullOrBlank()) {
+                                    OutlinedButton(
+                                        onClick = { PlatformBridge.openExternalUrl(mfaSetupData!!.otpauthUrl!!) },
+                                        modifier = Modifier.fillMaxWidth().height(32.dp),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text("Buka di Aplikasi Authenticator", fontSize = 11.sp, color = PrimaryBlue)
+                                    }
+                                }
                                 OutlinedTextField(
                                     value = totpInput,
-                                    onValueChange = { totpInput = it },
-                                    placeholder = { Text("Masukkan 6-digit kode TOTP", fontSize = 12.sp) },
+                                    onValueChange = { totpInput = it.filter { c -> c.isDigit() }.take(6) },
+                                    placeholder = { Text("Masukkan 6-digit kode verifikasi (123456)", fontSize = 12.sp) },
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth()
                                 )
@@ -357,11 +398,12 @@ fun IosSettingsScreen(
                                                 .onFailure { onMessage(it.message ?: "Kode salah") }
                                         }
                                     },
+                                    enabled = totpInput.length == 6,
                                     modifier = Modifier.fillMaxWidth().height(36.dp),
                                     shape = RoundedCornerShape(8.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = AccentEmerald)
                                 ) {
-                                    Text("Verifikasi & Aktifkan", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                    Text("Confirm & Enable", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                                 }
                             }
                         }
@@ -489,3 +531,4 @@ fun IosSettingsScreen(
         )
     }
 }
+

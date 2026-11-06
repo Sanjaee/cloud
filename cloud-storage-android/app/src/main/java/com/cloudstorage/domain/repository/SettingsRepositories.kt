@@ -17,7 +17,7 @@ interface NotificationRepository {
 
 interface MfaRepository {
     suspend fun getMfaStatus(): NetworkResult<Boolean>
-    suspend fun setupMfa(): NetworkResult<Triple<String, String, String?>> // secret, qrCodeDataUrl, otpauthUrl
+    suspend fun setupMfa(regenerate: Boolean = false): NetworkResult<Triple<String, String, String?>> // secret, qrCodeDataUrl, otpauthUrl
     suspend fun enableMfa(code: String): NetworkResult<List<String>> // backup codes
     suspend fun disableMfa(code: String?, password: String?): NetworkResult<Unit>
 }

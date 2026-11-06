@@ -11,7 +11,9 @@ interface MfaApiService {
     suspend fun getMfaStatus(): Response<ApiResponseDto<MfaStatusDto>>
 
     @POST("mfa/setup")
-    suspend fun setupMfa(): Response<ApiResponseDto<MfaSetupResponseDto>>
+    suspend fun setupMfa(
+        @Body request: MfaSetupRequestDto = MfaSetupRequestDto()
+    ): Response<ApiResponseDto<MfaSetupResponseDto>>
 
     @POST("mfa/enable")
     suspend fun enableMfa(

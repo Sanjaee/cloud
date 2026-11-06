@@ -8,6 +8,7 @@ import com.cloudstorage.data.remote.api.QuotaApiService
 import com.cloudstorage.data.remote.api.SessionApiService
 import com.cloudstorage.data.remote.dto.MfaDisableRequestDto
 import com.cloudstorage.data.remote.dto.MfaEnableRequestDto
+import com.cloudstorage.data.remote.dto.MfaSetupRequestDto
 import com.cloudstorage.domain.model.NotificationItem
 import com.cloudstorage.domain.model.Quota
 import com.cloudstorage.domain.model.SessionItem
@@ -119,9 +120,9 @@ class MfaRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun setupMfa(): NetworkResult<Triple<String, String, String?>> {
+    override suspend fun setupMfa(regenerate: Boolean): NetworkResult<Triple<String, String, String?>> {
         return try {
-            val response = mfaApiService.setupMfa()
+            val response = mfaApiService.setupMfa(MfaSetupRequestDto(regenerate = regenerate))
             if (response.isSuccessful && response.body()?.data != null) {
                 val d = response.body()!!.data!!
                 NetworkResult.Success(Triple(d.secret, d.qrCodeDataUrl, d.otpauthUrl))

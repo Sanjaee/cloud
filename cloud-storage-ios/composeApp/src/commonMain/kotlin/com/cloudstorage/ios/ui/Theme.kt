@@ -64,3 +64,4 @@ fun formatBytes(bytes: Long): String {
     val rounded = ((value * 10.0).toLong() / 10.0)
     return "$rounded ${units[unitIndex]}"
 }
+

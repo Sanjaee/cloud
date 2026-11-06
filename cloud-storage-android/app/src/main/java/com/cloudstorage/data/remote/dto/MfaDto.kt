@@ -8,6 +8,11 @@ data class MfaStatusDto(
 )
 
 @Serializable
+data class MfaSetupRequestDto(
+    val regenerate: Boolean = false
+)
+
+@Serializable
 data class MfaSetupResponseDto(
     val secret: String,
     val qrCodeDataUrl: String,

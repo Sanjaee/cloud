@@ -31,10 +31,13 @@ data class SettingsUiState(
     val isLoggedOut: Boolean = false,
     val successMessage: String? = null,
     val errorMessage: String? = null,
-    // MFA setup state
+    // MFA setup & backup codes state
     val mfaSecret: String? = null,
     val mfaQrDataUrl: String? = null,
+    val mfaOtpauthUrl: String? = null,
+    val backupCodes: List<String> = emptyList(),
     val showMfaSetupDialog: Boolean = false,
+    val showBackupCodesDialog: Boolean = false,
     val showMfaDisableDialog: Boolean = false
 )
 
@@ -165,30 +168,42 @@ class SettingsViewModel @Inject constructor(
 
     // 2FA Management
     fun openDisableMfaDialog() {
-        _uiState.update { it.copy(showMfaDisableDialog = true) }
+        _uiState.update { it.copy(showMfaDisableDialog = true, errorMessage = null) }
     }
 
     fun closeDisableMfaDialog() {
         _uiState.update { it.copy(showMfaDisableDialog = false) }
     }
 
-    fun disableMfa(codeOrPassword: String) {
+    fun openBackupCodesDialog() {
+        _uiState.update { it.copy(showBackupCodesDialog = true) }
+    }
+
+    fun closeBackupCodesDialog() {
+        _uiState.update { it.copy(showBackupCodesDialog = false) }
+    }
+
+    fun disableMfa(codeInput: String, passwordInput: String = "") {
+        val cleanCode = codeInput.trim().takeIf { it.isNotEmpty() }
+        val cleanPassword = passwordInput.trim().takeIf { it.isNotEmpty() }
+        if (cleanCode == null && cleanPassword == null) {
+            _uiState.update { it.copy(errorMessage = "Masukkan kode TOTP dari ponsel, backup code, atau password akun Anda") }
+            return
+        }
+
         viewModelScope.launch {
-            _uiState.update { it.copy(isActionLoading = true) }
-            val isDigits = codeOrPassword.trim().all { it.isDigit() }
-            val res = if (isDigits) {
-                mfaRepository.disableMfa(code = codeOrPassword.trim(), password = null)
-            } else {
-                mfaRepository.disableMfa(code = null, password = codeOrPassword.trim())
-            }
+            _uiState.update { it.copy(isActionLoading = true, errorMessage = null) }
+            val res = mfaRepository.disableMfa(code = cleanCode, password = cleanPassword)
 
             when (res) {
                 is NetworkResult.Success -> {
                     _uiState.update {
                         it.copy(
                             isActionLoading = false,
+                            isMfaEnabled = false,
+                            backupCodes = emptyList(),
                             showMfaDisableDialog = false,
-                            successMessage = "2FA berhasil dinonaktifkan"
+                            successMessage = "Two-Factor Authentication berhasil dinonaktifkan."
                         )
                     }
                     loadSettings()
@@ -201,16 +216,17 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun openMfaSetupDialog() {
+    fun openMfaSetupDialog(regenerate: Boolean = false) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isActionLoading = true) }
-            when (val res = mfaRepository.setupMfa()) {
+            _uiState.update { it.copy(isActionLoading = true, errorMessage = null) }
+            when (val res = mfaRepository.setupMfa(regenerate = regenerate)) {
                 is NetworkResult.Success -> {
                     _uiState.update {
                         it.copy(
                             isActionLoading = false,
                             mfaSecret = res.data.first,
                             mfaQrDataUrl = res.data.second,
+                            mfaOtpauthUrl = res.data.third,
                             showMfaSetupDialog = true
                         )
                     }
@@ -224,19 +240,38 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun closeMfaSetupDialog() {
-        _uiState.update { it.copy(showMfaSetupDialog = false, mfaSecret = null, mfaQrDataUrl = null) }
+        _uiState.update {
+            it.copy(
+                showMfaSetupDialog = false,
+                mfaSecret = null,
+                mfaQrDataUrl = null,
+                mfaOtpauthUrl = null
+            )
+        }
     }
 
     fun confirmEnableMfa(totpCode: String) {
+        val clean = totpCode.replace(Regex("[^\\d]"), "")
+        if (clean.length != 6) {
+            _uiState.update { it.copy(errorMessage = "Masukkan 6-digit kode verifikasi TOTP yang valid") }
+            return
+        }
+
         viewModelScope.launch {
-            _uiState.update { it.copy(isActionLoading = true) }
-            when (val res = mfaRepository.enableMfa(totpCode)) {
+            _uiState.update { it.copy(isActionLoading = true, errorMessage = null) }
+            when (val res = mfaRepository.enableMfa(clean)) {
                 is NetworkResult.Success -> {
                     _uiState.update {
                         it.copy(
                             isActionLoading = false,
+                            isMfaEnabled = true,
+                            mfaSecret = null,
+                            mfaQrDataUrl = null,
+                            mfaOtpauthUrl = null,
                             showMfaSetupDialog = false,
-                            successMessage = "Two-Factor Authentication berhasil diaktifkan!"
+                            backupCodes = res.data,
+                            showBackupCodesDialog = res.data.isNotEmpty(),
+                            successMessage = "Two-Factor Authentication (2FA) berhasil diaktifkan!"
                         )
                     }
                     loadSettings()

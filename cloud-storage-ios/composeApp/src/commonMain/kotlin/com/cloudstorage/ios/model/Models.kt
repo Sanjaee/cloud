@@ -322,3 +322,4 @@ data class MfaDisableRequestDto(
     val code: String,
     val totpCode: String? = null
 )
+
